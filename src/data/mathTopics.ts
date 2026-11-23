@@ -1,0 +1,2173 @@
+import type {GeneratedQuestion, MathTopic, TopicGroup} from '../types/math';
+
+const R = (a: number, b: number): number => a + Math.floor(Math.random() * (b - a + 1));
+const P = <T,>(a: T[]): T => a[R(0, a.length - 1)];
+const G = (a: number, b: number): number => (b ? G(b, a % b) : Math.abs(a));
+
+function fr(n: number, d: number): string {
+  const g = G(n, d);
+  n /= g;
+  d /= g;
+  if (d < 0) {
+    n = -n;
+    d = -d;
+  }
+  return d === 1 ? '' + n : n + '/' + d;
+}
+
+const SP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const SB = '₀₁₂₃₄₅₆₇₈₉';
+
+function S(n: number): string {
+  return ('' + n)
+    .split('')
+    .map((c) => (c === '-' ? '⁻' : SP[Number(c)] ?? c))
+    .join('');
+}
+
+function B(n: number): string {
+  return ('' + n)
+    .split('')
+    .map((c) => SB[Number(c)] ?? c)
+    .join('');
+}
+
+function sg(n: number): string {
+  return n < 0 ? '− ' + -n : '+ ' + n;
+}
+
+function pi(n: number, d: number): string {
+  const g = G(n, d);
+  n /= g;
+  d /= g;
+  return (n === 1 ? 'π' : n + 'π') + (d === 1 ? '' : '/' + d);
+}
+
+function mx(n: number, d: number): string {
+  const g = G(n, d);
+  n /= g;
+  d /= g;
+  const w = Math.floor(n / d);
+  const r = n - w * d;
+  return r === 0 ? '' + w : w ? w + ' ' + r + '/' + d : r + '/' + d;
+}
+
+function pol(a: number, b: number, c: number): string {
+  return (a === 1 ? '' : a) + 'x²' + (b ? ' ' + sg(b) + 'x' : '') + (c ? ' ' + sg(c) : '');
+}
+
+type RawQ = [string, string, string, string, string] | null | undefined;
+
+function mk(q: string, c: string | number, w: Array<string | number>): RawQ {
+  const cs = '' + c;
+  const ws: string[] = [];
+  w.forEach((x) => {
+    const xs = '' + x;
+    if (xs !== cs && xs !== 'NaN' && ws.indexOf(xs) < 0) ws.push(xs);
+  });
+  let k = 1;
+  while (ws.length < 3 && !isNaN(Number(cs)) && k < 20) {
+    const v = '' + (Number(cs) + (k % 2 ? k : -k));
+    k++;
+    if (v !== cs && ws.indexOf(v) < 0) ws.push(v);
+  }
+  return ws.length < 3 ? null : [q, cs, ws[0], ws[1], ws[2]];
+}
+
+const TV: Array<[number, string, string, string | null]> = [
+  [0, '0', '1', '0'],
+  [30, '1/2', '√3/2', '√3/3'],
+  [45, '√2/2', '√2/2', '1'],
+  [60, '√3/2', '1/2', '√3'],
+  [90, '1', '0', null],
+  [120, '√3/2', '−1/2', '−√3'],
+  [135, '√2/2', '−√2/2', '−1'],
+  [150, '1/2', '−√3/2', '−√3/3'],
+  [180, '0', '−1', '0'],
+  [210, '−1/2', '−√3/2', '√3/3'],
+  [225, '−√2/2', '−√2/2', '1'],
+  [240, '−√3/2', '−1/2', '√3'],
+  [300, '−√3/2', '1/2', '−√3'],
+  [315, '−√2/2', '√2/2', '−1'],
+  [330, '−1/2', '√3/2', '−√3/3'],
+];
+
+const POOL = ['0', '1', '−1', '1/2', '−1/2', '√2/2', '−√2/2', '√3/2', '−√3/2', '√3', '−√3', '√3/3', '−√3/3'];
+const TRI: Array<[number, number, number]> = [
+  [3, 4, 5],
+  [5, 12, 13],
+  [8, 15, 17],
+  [7, 24, 25],
+  [20, 21, 29],
+];
+
+function sq(n: number): string {
+  let k = 1;
+  let m = n;
+  for (let i = Math.floor(Math.sqrt(n)); i > 1; i--) {
+    if (n % (i * i) === 0) {
+      k = i;
+      m = n / (i * i);
+      break;
+    }
+  }
+  return m === 1 ? '' + k : (k === 1 ? '' : k) + '√' + m;
+}
+
+function cr(n: number, r: number): string {
+  return (n === 1 ? '' : n) + '√' + r;
+}
+
+function pn(n: number): string {
+  return n === 1 ? 'π' : n + 'π';
+}
+
+function mn(q: string, c: number, w: number[], u = ''): RawQ {
+  const ws: number[] = [];
+  w.forEach((x) => {
+    if (x !== c && ws.indexOf(x) < 0 && x >= 0 && x % 1 === 0) ws.push(x);
+  });
+  let k = 1;
+  const m = Math.max(1, Math.round(c / 10));
+  while (ws.length < 3 && k < 40) {
+    const v = c + (k % 2 ? k : -k) * m;
+    k++;
+    if (v !== c && v >= 0 && ws.indexOf(v) < 0) ws.push(v);
+  }
+  if (ws.length < 3) return null;
+  return [q, c + u, ws[0] + u, ws[1] + u, ws[2] + u];
+}
+
+const T3: Array<[number, number, number]> = [
+  [3, 4, 5],
+  [5, 12, 13],
+  [8, 15, 17],
+  [7, 24, 25],
+  [20, 21, 29],
+  [6, 8, 10],
+  [9, 12, 15],
+];
+
+const TL: Array<[number, number, number, number]> = [
+  [3, 4, 5, 6],
+  [5, 5, 6, 12],
+  [13, 14, 15, 84],
+  [5, 12, 13, 30],
+  [8, 15, 17, 60],
+  [7, 15, 20, 42],
+  [9, 10, 17, 36],
+  [13, 13, 10, 60],
+  [17, 17, 16, 120],
+  [10, 17, 21, 84],
+  [15, 20, 25, 150],
+];
+
+function tri(): [number, number, number] {
+  const t = P(T3);
+  const k = R(1, 3);
+  return [t[0] * k, t[1] * k, t[2] * k];
+}
+
+function dv(p: number): number {
+  const a: number[] = [];
+  for (let i = 2; i < p; i++) if (p % i === 0) a.push(i);
+  return a.length ? P(a) : 0;
+}
+
+function xp(v: string, n: number): string {
+  return n === 0 ? '' : n === 1 ? v : v + S(n);
+}
+function cf(a: number): string {
+  return a === 1 ? '' : a === -1 ? '−' : '' + a;
+}
+function ln(a: number, b: number): string {
+  return cf(a) + 'x' + (b ? ' ' + sg(b) : '');
+}
+function sn(n: number): string {
+  return n < 0 ? '(−' + -n + ')' : '' + n;
+}
+function eq(a: number, b: number, c: number): string {
+  return (a === 1 ? 'x' : a === -1 ? '−x' : a + 'x') + ' ' + (b < 0 ? '−' : '+') + ' ' + (Math.abs(b) === 1 ? '' : Math.abs(b)) + 'y = ' + c;
+}
+function ng(s: string): string {
+  return s === '0' ? '0' : s.charAt(0) === '−' ? s.slice(1) : '−' + s;
+}
+function rp(a: number, b: number): number {
+  return Math.floor(a / b);
+}
+
+const DG: number[] = [];
+for (let q = 15; q <= 345; q += 15) DG.push(q);
+
+interface RawTopic {
+  en: string;
+  sec: string;
+  grp: TopicGroup;
+  g: Array<() => RawQ>;
+}
+
+const ALGEBRA_BASE: RawTopic[] = [
+  {
+    en: 'Oddiy kasrlar ustida amallar',
+    sec: '§3–5',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const b = R(2, 9), d = R(2, 9), x = R(1, b - 1), y = R(1, d - 1);
+        if (b === d) return;
+        return mk(`Hisoblang: ${x}/${b} + ${y}/${d}`, fr(x * d + y * b, b * d), [fr(x + y, b + d), fr(x * y, b * d), fr(x * d + y * b, b + d), fr(x * d + y * b, b * d + 1)]);
+      },
+      () => {
+        const b = R(2, 9), d = R(2, 9), x = R(1, b - 1), y = R(1, d - 1);
+        if (b === d || x * d <= y * b) return;
+        return mk(`Hisoblang: ${x}/${b} − ${y}/${d}`, fr(x * d - y * b, b * d), [fr(x * d + y * b, b * d), fr(x * d - y * b, b + d), fr(x - y, b * d), fr(x * d - y * b, b * d + 1)]);
+      },
+      () => {
+        const b = R(2, 9), d = R(2, 9), x = R(1, b - 1), y = R(1, d - 1);
+        return mk(`Hisoblang: ${x}/${b} · ${y}/${d}`, fr(x * y, b * d), [fr(x * d, b * y), fr(x + y, b * d), fr(x * y, b + d), fr(x * y, b * d + 1)]);
+      },
+      () => {
+        const b = R(2, 9), d = R(2, 9), x = R(1, b - 1), y = R(1, d - 1);
+        return mk(`Hisoblang: ${x}/${b} : ${y}/${d}`, fr(x * d, b * y), [fr(x * y, b * d), fr(b * y, x * d), fr(x * d, b + y), fr(x + d, b * y)]);
+      },
+      () => {
+        const b = R(2, 9), x = R(1, b - 1), k = R(2, 12);
+        return mk(`${b * k} ning ${x}/${b} qismini toping.`, x * k, [x * k + b, b * k - x, x * k + k, x * k - k]);
+      },
+      () => {
+        const b = R(3, 12), x = R(1, b - 1), y = R(1, b - 1);
+        return mk(`Qoʻshing: ${x}/${b} + ${y}/${b}`, fr(x + y, b), [fr(x + y, 2 * b), fr(x * y, b), fr(x + y, b + 1), fr(Math.abs(x - y) + 1, b)]);
+      },
+      () => {
+        const b = R(2, 6), d = R(2, 6), e = R(2, 6), x = R(1, b - 1), y = R(1, d - 1), z = R(1, e - 1);
+        if (b === d || d === e || b === e) return;
+        return mk(`Qoʻshing: ${x}/${b} + ${y}/${d} + ${z}/${e}`, fr(x * d * e + y * b * e + z * b * d, b * d * e), [fr(x + y + z, b + d + e), fr(x * y * z, b * d * e), fr(x * d * e + y * b * e + z * b * d, b + d + e), fr(x * d * e + y * b * e + z * b * d + 1, b * d * e)]);
+      },
+      () => {
+        const b = R(2, 12), d = R(2, 12), x = R(1, b - 1), y = R(1, d - 1);
+        if (x * d === y * b) return;
+        const big = x * d > y * b ? [x, b] : [y, d];
+        const sm = x * d > y * b ? [y, d] : [x, b];
+        return mk(`Qaysi son katta: ${x}/${b} yoki ${y}/${d}?`, `${big[0]}/${big[1]}`, [`${sm[0]}/${sm[1]}`, fr(x + y, b + d), fr(x * y, b * d), fr(x + d, y + b)]);
+      },
+      () => {
+        const a = R(1, 5), b = R(1, 5), d = R(2, 6), e = R(2, 6), x = R(1, d - 1), y = R(1, e - 1);
+        if (d === e) return;
+        const N1 = a * d + x, N2 = b * e + y, s = N1 * e + N2 * d, m = d * e;
+        return mk(`Hisoblang: ${a} ${x}/${d} + ${b} ${y}/${e}`, mx(s, m), [mx((a + b) * (d + e) + x + y, d + e), mx(s + 1, m), mx(s - m, m), mx(N1 * N2, m)]);
+      },
+      () => {
+        const a = R(3, 8), b = R(1, 2), d = R(2, 6), e = R(2, 6), x = R(1, d - 1), y = R(1, e - 1);
+        if (d === e) return;
+        const N1 = a * d + x, N2 = b * e + y, s = N1 * e - N2 * d, m = d * e;
+        return mk(`Hisoblang: ${a} ${x}/${d} − ${b} ${y}/${e}`, mx(s, m), [mx(N1 * e + N2 * d, m), mx(s + 1, m), mx((a - b) * (d + e) + x - y, d + e), mx(s + m, m)]);
+      },
+    ],
+  },
+  {
+    en: 'Daraja va ildizlar',
+    sec: '§10, §33, §43',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = P([2, 3, 5]), m = R(2, 6), n = R(2, 5), k = R(1, m + n - 1), v = Math.pow(a, m + n - k);
+        return mk(`Hisoblang: ${a}${S(m)} · ${a}${S(n)} : ${a}${S(k)}`, v, [v * a, v / a, Math.pow(a, m + n + k), Math.pow(a, m * n - k)]);
+      },
+      () => {
+        const n = R(2, 15), m = R(2, 6);
+        return mk(`Hisoblang: √${n * n} + ∛${Math.pow(m, 3)}`, n + m, [n * m, n - m, n * n + m, n + m * m]);
+      },
+      () => {
+        const a = R(2, 9), k = R(2, 4);
+        return mk(`Hisoblang: ${a}${S(-k)}`, fr(1, Math.pow(a, k)), [fr(1, a * k), `−${Math.pow(a, k)}`, Math.pow(a, k), fr(-1, a * k)]);
+      },
+      () => {
+        const a = R(2, 6), k = R(2, 4), v = Math.pow(a, 2 * k);
+        return mk(`Hisoblang: (${a}²)${S(k)}`, v, [Math.pow(a, k + 2), a * 2 * k, Math.pow(a, k), v * a]);
+      },
+      () => {
+        const a = R(2, 12), b = R(2, 12);
+        return mk(`Hisoblang: √${a * a * b * b}`, a * b, [a + b, a * a * b, a * b * b, a * b + 1]);
+      },
+      () => {
+        const a = R(2, 9);
+        return mk(`Hisoblang: (${a}⁰ + ${a}¹) · ${a}`, (1 + a) * a, [a * a + a, 2 * a, 1 + a, a * a]);
+      },
+    ],
+  },
+  {
+    en: 'Chiziqli va kvadrat tenglamalar',
+    sec: '§9, §34–37',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const x = R(-9, 9), a = R(2, 9), b = R(-12, 12);
+        if (!x || !b) return;
+        return mk(`Tenglamani yeching: ${a}x ${sg(b)} = ${a * x + b}`, `x = ${x}`, [`x = ${x + 1}`, `x = ${x - 1}`, `x = ${-x}`, `x = ${x + 2}`]);
+      },
+      () => {
+        const r = R(-9, 9), t = R(-9, 9);
+        if (r === t || !r || !t || r + t === 0) return;
+        const s = r + t, p = r * t, q = `x² ${sg(-s)}x ${sg(p)} = 0`, w = P([0, 1, 2, 3]);
+        return w === 0
+          ? mk(`${q} tenglama ildizlari yigʻindisini toping.`, s, [-s, p, -p, s + 1])
+          : w === 1
+          ? mk(`${q} tenglama ildizlari koʻpaytmasini toping.`, p, [-p, s, -s, p + 1])
+          : w === 2
+          ? mk(`${q} tenglamaning katta ildizini toping.`, Math.max(r, t), [Math.min(r, t), -Math.max(r, t), Math.max(r, t) + 1, s])
+          : mk(`${q} tenglama ildizlari kvadratlarining yigʻindisini toping.`, s * s - 2 * p, [s * s, s * s - p, s * s + 2 * p, s * s - 2 * p + 1]);
+      },
+      () => {
+        const r = R(-9, 9), t = R(-9, 9);
+        if (!r || !t || r === t) return;
+        const s = r + t, p = r * t;
+        return mk(`x² ${sg(-s)}x ${sg(p)} = 0 tenglamaning diskriminantini toping.`, s * s - 4 * p, [s * s + 4 * p, s * s - 2 * p, s * s - 4 * p + 4, s * s - 4 * p - 2]);
+      },
+      () => {
+        const a = R(2, 6), x = R(-9, 9), c = R(2, 6);
+        if (a === c || !x) return;
+        const e = a * x - c * x;
+        return mk(`Tenglamani yeching: ${a}x = ${c}x ${sg(e)}`, `x = ${x}`, [`x = ${-x}`, `x = ${x + 1}`, `x = ${x - 1}`, `x = ${e}`]);
+      },
+    ],
+  },
+  {
+    en: 'Tengsizliklar',
+    sec: '§29, §40',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(2, 9), x = R(-8, 8), b = R(-10, 10), gt = R(0, 1);
+        if (!b) return;
+        const c = a * x + b, s1 = gt ? '>' : '<', ot = gt ? '<' : '>';
+        return mk(`Tengsizlikni yeching: ${a}x ${sg(b)} ${s1} ${c}`, `x ${s1} ${x}`, [`x ${ot} ${x}`, `x ${s1} ${x + 1}`, `x ${ot} ${-x}`, `x ${s1} ${x - 1}`]);
+      },
+      () => {
+        const a = R(2, 9), x = R(-8, 8), b = R(-10, 10);
+        if (!b) return;
+        const c = -a * x + b;
+        return mk(`Tengsizlikni yeching: −${a}x ${sg(b)} > ${c}`, `x < ${x}`, [`x > ${x}`, `x < ${x + 1}`, `x > ${-x}`, `x < ${-x}`]);
+      },
+      () => {
+        const n = R(2, 30);
+        return mk(`|x| < ${n} tengsizlikni nechta butun son qanoatlantiradi?`, 2 * n - 1, [2 * n, 2 * n + 1, n, n - 1]);
+      },
+      () => {
+        const p = R(-9, 3), q = p + R(2, 9);
+        if (!p || !q) return;
+        return mk(`(x ${sg(-p)})(x ${sg(-q)}) < 0 tengsizlikni nechta butun son qanoatlantiradi?`, q - p - 1, [q - p, q - p + 1, q - p - 2, q + p]);
+      },
+      () => {
+        const a = R(2, 9), x = R(-8, 8), b = R(-10, 10);
+        if (!b) return;
+        return mk(`${a}x ${sg(b)} > ${a * x + b} tengsizlikning eng kichik butun yechimini toping.`, x + 1, [x, x + 2, x - 1, -x]);
+      },
+    ],
+  },
+  {
+    en: 'Proporsiya va foiz',
+    sec: '§25–26',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const p = 5 * R(1, 19), n = 20 * R(1, 40);
+        return mk(`${n} ning ${p} foizini toping.`, (p * n) / 100, [(p * n) / 10, p + (n / 100) * 10, n - (p * n) / 100, (p * n) / 100 + p]);
+      },
+      () => {
+        const p = 5 * R(1, 12), n = 20 * R(1, 30);
+        return mk(`Mahsulot narxi ${n} soʻm edi, u ${p}% ga oshirildi. Yangi narx qancha?`, (n * (100 + p)) / 100, [n + p, (n * (100 - p)) / 100, (n * p) / 100, (n * (100 + p)) / 100 + p]);
+      },
+      () => {
+        const p = 10 * R(1, 9), n = 20 * R(1, 25), m = (n * (100 + p)) / 100;
+        return mk(`Sonni ${p}% ga oshirishdan ${m} hosil boʻldi. Shu sonni toping.`, n, [m - p, n + 2 * p, n + p, m - n + p]);
+      },
+      () => {
+        const c = R(2, 9), k = R(2, 9), b = R(2, 12), a = c * k;
+        return mk(`x : ${a} = ${b} : ${c} proporsiyada x ni toping.`, b * k, [a + b - c, b * a, k + b, a * c]);
+      },
+      () => {
+        const m = 20 * R(1, 25), p = 5 * R(1, 19);
+        return mk(`${(m * p) / 100} soni ${m} ning necha foizini tashkil qiladi?`, `${p}%`, [`${p * 2}%`, `${p + 5}%`, `${p - 5}%`, `${Math.round(p / 2)}%`]);
+      },
+    ],
+  },
+  {
+    en: 'Kvadrat funksiya',
+    sec: '§39',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(1, 4), h = R(-5, 5), c = R(-9, 9);
+        if (!h) return;
+        return mk(`y = ${pol(a, -2 * a * h, c)} funksiya grafigi uchining abssissasini toping.`, h, [-h, h + 1, h - 1, 2 * h]);
+      },
+      () => {
+        const a = R(1, 4), h = R(-5, 5), k = R(-9, 9);
+        if (!h) return;
+        return mk(`y = ${pol(a, -2 * a * h, a * h * h + k)} funksiyaning eng kichik qiymatini toping.`, k, [a * h * h + k, -k, k + a, h]);
+      },
+      () => {
+        const a = R(1, 4), b = R(-8, 8), c = R(-9, 9), t = R(-3, 4);
+        return mk(`f(x) = ${pol(a, b, c)} boʻlsa, f(${t}) ni toping.`, a * t * t + b * t + c, [a * t * t + b * t - c, a * t + b * t + c, a * t * t - b * t + c, a * t * t + b * t + c + 1]);
+      },
+      () => {
+        const a = R(1, 4), b = R(-8, 8), c = R(-9, 9);
+        if (!c) return;
+        return mk(`y = ${pol(a, b, c)} funksiya grafigi Oy oʻqini qaysi ordinatali nuqtada kesadi?`, c, [-c, a, b, c + a]);
+      },
+      () => {
+        const a = R(1, 4), b = R(-8, 8), c = R(-8, 8), D = b * b - 4 * a * c;
+        const t = ['2 ta haqiqiy ildiz', '1 ta haqiqiy ildiz', 'haqiqiy ildiz yoʻq', 'aniqlab boʻlmaydi'];
+        const r = D > 0 ? t[0] : D === 0 ? t[1] : t[2];
+        return mk(`y = ${pol(a, b, c)} funksiyaning nechta haqiqiy ildizi bor?`, r, t.filter((x) => x !== r));
+      },
+    ],
+  },
+  {
+    en: 'Arifmetik va geometrik progressiya',
+    sec: '§53–57',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(-10, 20), d = R(2, 9), n = R(5, 30);
+        return mk(`a₁ = ${a}, d = ${d} boʻlsa, a${B(n)} ni toping.`, a + (n - 1) * d, [a + n * d, a + (n - 2) * d, a * d * n, a + (n - 1) * d + d]);
+      },
+      () => {
+        const a = R(1, 15), d = R(2, 6), n = R(5, 25);
+        return mk(`a₁ = ${a}, d = ${d} boʻlsa, S${B(n)} ni toping.`, (n * (2 * a + (n - 1) * d)) / 2, [n * (a + (n - 1) * d), (n * (2 * a + (n + 1) * d)) / 2, n * a + d, (n * (2 * a + (n - 1) * d)) / 2 + d]);
+      },
+      () => {
+        const b = R(1, 5), q = R(2, 3), n = R(3, 7);
+        return mk(`b₁ = ${b}, q = ${q} boʻlsa, b${B(n)} ni toping.`, b * Math.pow(q, n - 1), [b * Math.pow(q, n), b * q * n, b + (n - 1) * q, b * Math.pow(q, n - 2)]);
+      },
+      () => {
+        const k = R(2, 5), m = R(1, 9);
+        return mk(`b₁ = ${(k - 1) * m} va q = 1/${k} boʻlgan cheksiz kamayuvchi geometrik progressiya yigʻindisini toping.`, k * m, [(k - 1) * m * k, (k - 1) * m + 1, m, k * m + k]);
+      },
+      () => {
+        const a = R(1, 20), d = R(2, 8), n = R(5, 20), v = a + (n - 1) * d;
+        return mk(`Arifmetik progressiyada a₁ = ${a} va a${B(n)} = ${v}. d ni toping.`, d, [d + 1, d - 1, v - a, d * 2]);
+      },
+    ],
+  },
+  {
+    en: 'Koʻrsatkichli tenglamalar',
+    sec: '§59–61',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = P([2, 3, 5, 7]), k = R(2, 6);
+        return mk(`Tenglamani yeching: ${a}^x = ${Math.pow(a, k)}`, `x = ${k}`, [`x = ${k + 1}`, `x = ${k - 1}`, `x = ${Math.pow(a, k) / a}`, `x = ${2 * k}`]);
+      },
+      () => {
+        const a = P([2, 3, 5]), k = R(3, 7), c = R(1, 2);
+        return mk(`Tenglamani yeching: ${a}^(x + ${c}) = ${Math.pow(a, k)}`, `x = ${k - c}`, [`x = ${k + c}`, `x = ${k}`, `x = ${k - c + 1}`, `x = ${k - 2 * c}`]);
+      },
+      () => {
+        const a = P([2, 3, 5]), k = R(2, 5);
+        return mk(`Tenglamani yeching: ${a}^(2x) = ${Math.pow(a, 2 * k)}`, `x = ${k}`, [`x = ${2 * k}`, `x = ${k + 1}`, `x = ${k - 1}`, `x = ${k * k}`]);
+      },
+      () => {
+        const a = P([2, 3]), m = 2 * R(1, 4), b = a * a;
+        return mk(`Tenglamani yeching: ${b}^x = ${Math.pow(a, m)}`, `x = ${m / 2}`, [`x = ${m}`, `x = ${m / 2 + 1}`, `x = ${m + 2}`, `x = ${m / 2 - 1}`]);
+      },
+      () => {
+        const a = P([2, 3, 5]), k = R(3, 6), c = R(1, 2);
+        return mk(`Tenglamani yeching: ${a}^x · ${a}${S(c)} = ${Math.pow(a, k)}`, `x = ${k - c}`, [`x = ${k + c}`, `x = ${k}`, `x = ${k - c - 1}`, `x = ${k * c}`]);
+      },
+    ],
+  },
+  {
+    en: 'Logarifmlar',
+    sec: '§62–66',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const b = R(2, 9), k = R(2, 5);
+        return mk(`Hisoblang: log${B(b)} ${Math.pow(b, k)}`, k, [k + 1, k - 1, Math.pow(b, k) / b, b * k]);
+      },
+      () => {
+        const b = R(2, 5), x = R(1, 4), y = R(1, 4);
+        return mk(`Hisoblang: log${B(b)} ${Math.pow(b, x)} + log${B(b)} ${Math.pow(b, y)}`, x + y, [x * y, x + y + 1, Math.pow(b, x + y), x + y - 1]);
+      },
+      () => {
+        const b = R(2, 5), x = R(3, 6), y = R(1, 2);
+        return mk(`Hisoblang: log${B(b)} ${Math.pow(b, x)} − log${B(b)} ${Math.pow(b, y)}`, x - y, [x + y, x * y, x - y + 1, x / y]);
+      },
+      () => {
+        const b = R(2, 5), k = R(2, 4), c = R(1, 7);
+        return mk(`Tenglamani yeching: log${B(b)}(x + ${c}) = ${k}`, `x = ${Math.pow(b, k) - c}`, [`x = ${Math.pow(b, k) + c}`, `x = ${b * k - c}`, `x = ${Math.pow(b, k)}`, `x = ${Math.pow(b, k) - c + 1}`]);
+      },
+      () => {
+        const b = R(2, 6), k = R(1, 3);
+        return mk(`log${B(b)} x = −${k} boʻlsa, x ni toping.`, fr(1, Math.pow(b, k)), [`−${Math.pow(b, k)}`, fr(1, b * k), `−${fr(1, Math.pow(b, k))}`, Math.pow(b, k)]);
+      },
+      () => {
+        const b = R(2, 4), k = R(1, 3);
+        return mk(`Hisoblang: log${B(b * b)} ${Math.pow(b, 2 * k)}`, k, [2 * k, k + 1, k - 1, b * k]);
+      },
+      () => {
+        const k = R(1, 6);
+        return mk(`Hisoblang: lg ${Math.pow(10, k)}`, k, [k + 1, k - 1, Math.pow(10, k), 10 * k]);
+      },
+    ],
+  },
+  {
+    en: 'Trigonometriya',
+    sec: '§69–80',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const r = P(TV), f = R(0, 2);
+        if (f === 2 && r[3] === null) return;
+        const nm = ['sin', 'cos', 'tg'][f], c = r[f + 1]!;
+        const w = POOL.filter((x) => x !== c).sort(() => Math.random() - 0.5).slice(0, 3);
+        return mk(`Hisoblang: ${nm} ${r[0]}°`, c, w);
+      },
+      () => {
+        const d = P([30, 45, 60, 90, 120, 135, 150, 210, 225, 240, 270, 300, 315, 330]), c = pi(d, 180);
+        return mk(`${d}° ni radianda ifodalang.`, c, [pi(d, 90), pi(d, 360), pi(d + 30, 180), pi(d, 45)]);
+      },
+      () => {
+        const t = P(TRI), a = t[0], b = t[1], c = t[2], f = R(0, 2);
+        return f === 0
+          ? mk(`sin x = ${a}/${c}, 0 < x < π/2 boʻlsa, cos x ni toping.`, `${b}/${c}`, [`${a}/${b}`, `${b}/${a}`, `−${b}/${c}`])
+          : f === 1
+          ? mk(`cos x = ${b}/${c}, 0 < x < π/2 boʻlsa, sin x ni toping.`, `${a}/${c}`, [`${b}/${a}`, `${a}/${b}`, `−${a}/${c}`])
+          : mk(`sin x = ${a}/${c}, 0 < x < π/2 boʻlsa, tg x ni toping.`, `${a}/${b}`, [`${b}/${a}`, `${a}/${c}`, `${b}/${c}`]);
+      },
+      () => {
+        const k = R(2, 9);
+        return mk(`y = sin(${k}x) funksiyaning eng kichik davrini toping.`, pi(2, k), [pi(2 * k, 1), pi(1, k), pi(4, k), pi(k, 2)]);
+      },
+      () => {
+        const d = P([30, 45, 60]), f = P(['sin', 'cos']);
+        const row = TV.filter((x) => x[0] === d)[0];
+        const c = f === 'sin' ? row[1] : row[2];
+        const o = c.charAt(0) === '−' ? c.slice(1) : '−' + c;
+        const v = f === 'sin' ? o : c;
+        return mk(`Hisoblang: ${f}(−${d}°)`, v, POOL.filter((x) => x !== v).sort(() => Math.random() - 0.5).slice(0, 3));
+      },
+    ],
+  },
+];
+
+const ALGEBRA_MORE: RawTopic[] = [
+  {
+    en: 'Natural sonlar ustida arifmetik amallar',
+    sec: '§1, §41',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(5, 50), b = R(2, 12), c = R(2, 12), d = R(1, 40), v = a + b * c - d;
+        return mk(`Hisoblang: ${a} + ${b} · ${c} − ${d}`, v, [(a + b) * c - d, a + b * c + d, a + b * (c - d), v + 10]);
+      },
+      () => {
+        const a = R(2, 20), b = R(2, 15), c = R(2, 15), d = R(2, 12);
+        return mk(`Hisoblang: ${a} · ${b} − ${c} · ${d}`, a * b - c * d, [a * b + c * d, (a - c) * b * d, a * (b - c) * d, a * b - c * d + 10]);
+      },
+      () => {
+        const a = R(2, 30), b = R(2, 12), c = R(2, 12), d = R(1, 30);
+        return mk(`Hisoblang: (${a} + ${b}) · ${c} − ${d}`, (a + b) * c - d, [a + b * c - d, (a + b) * (c - d), (a + b) * c + d, (a + b) * c - d + c]);
+      },
+      () => {
+        const b = R(2, 12), q = R(2, 15), c = R(2, 30);
+        return mk(`Hisoblang: ${b * q} : ${b} + ${c}`, q + c, [(b * q) / (b + c) > 0 && (b * q) % (b + c) === 0 ? (b * q) / (b + c) : q + c + b, q * c, q - c, q + c + 1]);
+      },
+      () => {
+        const a = R(50, 500), b = R(3, 19);
+        if (a % b === 0) return;
+        return mk(`${a} ni ${b} ga boʻlganda qoldiq nechaga teng?`, a % b, [b - (a % b), rp(a, b), (a % b) + 1, (a % b) + 2]);
+      },
+    ],
+  },
+  {
+    en: 'Boʻlinish alomatlari. EKUB va EKUK',
+    sec: '§2',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const g = R(2, 12), x = R(2, 9), y = R(2, 9);
+        if (G(x, y) !== 1 || x === y) return;
+        return mk(`${g * x} va ${g * y} sonlarining EKUB ini toping.`, g, [g * x, g * y, g + x, x * y]);
+      },
+      () => {
+        const g = R(2, 9), x = R(2, 9), y = R(2, 9);
+        if (G(x, y) !== 1 || x === y) return;
+        return mk(`${g * x} va ${g * y} sonlarining EKUK ini toping.`, g * x * y, [g * x * g * y, g, g * (x + y), x * y]);
+      },
+      () => {
+        const p = R(1, 9), q = R(0, 9), s = p + q;
+        if (s % 9 === 0) return;
+        const x = (9 - (s % 9)) % 9;
+        return mk(`${p}*${q} uch xonali son 9 ga boʻlinadi. * oʻrniga qoʻyilishi kerak boʻlgan raqamni toping.`, x, [x + 1, x + 2, 9 - x > 9 ? x : (x + 3) % 10, (x + 4) % 10]);
+      },
+      () => {
+        const k = R(2, 9), a = R(1, 50), b = a + R(30, 300);
+        return mk(`${a} dan ${b} gacha (shu sonlar ham kiradi) nechta natural son ${k} ga boʻlinadi?`, rp(b, k) - rp(a - 1, k), [rp(b - a, k), rp(b, k), rp(b - a, k) + 1, rp(b, k) - rp(a, k) + 2]);
+      },
+      () => {
+        const p = P([[2, 3], [2, 5], [3, 5], [2, 7], [3, 7], [5, 7]]), a = R(1, 4), b = R(1, 3), N = Math.pow(p[0], a) * Math.pow(p[1], b);
+        return mk(`${N} sonining natural boʻluvchilari nechta?`, (a + 1) * (b + 1), [a * b, a + b, (a + 1) * (b + 1) + 1, a + 1 + (b + 1)]);
+      },
+    ],
+  },
+  {
+    en: 'Cheksiz davriy kasrlar',
+    sec: '§6',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const d = R(1, 8);
+        return mk(`0,(${d}) davriy kasrni oddiy kasr koʻrinishida yozing.`, fr(d, 9), [fr(d, 10), fr(d, 99), fr(d + 1, 9), fr(d, 90)]);
+      },
+      () => {
+        const n = R(10, 98);
+        if (n % 11 === 0) return;
+        return mk(`0,(${n < 10 ? '0' + n : n}) davriy kasrni oddiy kasr koʻrinishida yozing.`, fr(n, 99), [fr(n, 100), fr(n, 90), fr(n, 9), fr(n + 1, 99)]);
+      },
+      () => {
+        const a = R(1, 8), b = R(0, 9);
+        if (b === 9) return;
+        const n = 9 * a + b;
+        return mk(`0,${a}(${b}) davriy kasrni oddiy kasr koʻrinishida yozing.`, fr(n, 90), [fr(10 * a + b, 99), fr(10 * a + b, 90), fr(n, 99), fr(a + b, 9)]);
+      },
+    ],
+  },
+  {
+    en: 'Musbat va manfiy sonlar',
+    sec: '§7',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(-15, 15), b = R(-15, 15);
+        if (!a || !b) return;
+        return mk(`Hisoblang: ${sn(a)} + ${sn(b)}`, a + b, [Math.abs(a) + Math.abs(b), a - b, -(a + b), b - a]);
+      },
+      () => {
+        const a = R(-15, 15), b = R(-15, 15);
+        if (!a || !b) return;
+        return mk(`Hisoblang: ${sn(a)} − ${sn(b)}`, a - b, [a + b, b - a, -(a + b), Math.abs(a) - Math.abs(b)]);
+      },
+      () => {
+        const a = R(-12, 12), b = R(-12, 12);
+        if (!a || !b) return;
+        return mk(`Hisoblang: ${sn(a)} · ${sn(b)}`, a * b, [-a * b, a + b, a - b, a * b + a]);
+      },
+      () => {
+        const b = R(-9, 9), q = R(-12, 12);
+        if (!b || !q) return;
+        return mk(`Hisoblang: ${sn(b * q)} : ${sn(b)}`, q, [-q, b * q, q + b, b - q]);
+      },
+      () => {
+        const a = R(-20, 20), b = R(-20, 20), c = R(-9, 9);
+        if (!a || !b || !c) return;
+        return mk(`Hisoblang: |${a}| − |${b}| + ${sn(c)}`, Math.abs(a) - Math.abs(b) + c, [a - b + c, Math.abs(a) + Math.abs(b) + c, Math.abs(a) - Math.abs(b) - c, a + b + c]);
+      },
+    ],
+  },
+  {
+    en: 'Birhad va koʻphadlar',
+    sec: '§11–15',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(2, 9), b = R(2, 9), p = R(1, 3), q = R(1, 3), r = R(1, 3), s = R(1, 3);
+        return mk(
+          `${a}x${xp('', p)}y${xp('', q)} · ${b}x${xp('', r)}y${xp('', s)} koʻpaytmani soddalashtiring.`,
+          `${a * b}x${xp('', p + r)}y${xp('', q + s)}`,
+          [
+            `${a + b}x${xp('', p + r)}y${xp('', q + s)}`,
+            `${a * b}x${xp('', p * r)}y${xp('', q * s)}`,
+            `${a * b}x${xp('', p + r)}y${xp('', q + s + 1)}`,
+            `${a * b}x${xp('', p + r + 1)}y${xp('', q + s)}`,
+          ],
+        );
+      },
+      () => {
+        const a = R(1, 6), b = R(-9, 9), c = R(1, 6), d = R(-9, 9);
+        if (!b || !d) return;
+        return mk(`(${ln(a, b)}) + (${ln(c, d)}) ni soddalashtiring.`, ln(a + c, b + d), [ln(a - c || 1, b - d), ln(a + c, b - d), ln(a + c + 1, b + d), ln(a * c, b * d)]);
+      },
+      () => {
+        const a = R(-9, 9), b = R(-9, 9), w = R(0, 1);
+        if (!a || !b || a === -b) return;
+        return mk(
+          `(x ${sg(a)})(x ${sg(b)}) koʻpaytmani yoyganda ${w ? 'ozod hadni toping.' : 'x oldidagi koeffitsiyentni toping.'}`,
+          w ? a * b : a + b,
+          w ? [a + b, -a * b, a * b + 1] : [a * b, a - b, a + b + 1],
+        );
+      },
+      () => {
+        const a = R(2, 7), b = R(-9, 9), t = R(-6, 6);
+        if (!b) return;
+        return mk(`${ln(a, b)} ifodaning x = ${t} dagi qiymatini toping.`, a * t + b, [a * t - b, a + t + b, a * (t + b), a * t + b + a]);
+      },
+      () => {
+        const p = R(1, 5), q = R(1, 5), r = R(1, 5), a = R(2, 9);
+        return mk(`${a}x${xp('', p)}y${xp('', q)}z${xp('', r)} birhadning darajasini toping.`, p + q + r, [p * q * r, p + q + r + 1, p + q + r - 1, a + p + q + r]);
+      },
+    ],
+  },
+  {
+    en: 'Qisqa koʻpaytirish formulalari',
+    sec: '§16–19',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(2, 12), w = R(0, 1);
+        return mk(`(x ${w ? '+' : '−'} ${a})² ni yoyganda x oldidagi koeffitsiyentni toping.`, w ? 2 * a : -2 * a, [a, a * a, w ? -2 * a : 2 * a, 2 * a + 1]);
+      },
+      () => {
+        const a = R(30, 99), b = R(10, a - 5);
+        return mk(`Hisoblang: ${a}² − ${b}²`, a * a - b * b, [(a - b) * (a - b), a * a + b * b, (a - b) * 2, a * a - b * b + 10]);
+      },
+      () => {
+        const s = R(3, 12), p = R(-10, 20);
+        return mk(`a + b = ${s} va ab = ${p} boʻlsa, a² + b² ni toping.`, s * s - 2 * p, [s * s, s * s - p, s * s + 2 * p, s * s - 2 * p + 2]);
+      },
+      () => {
+        const s = R(2, 9), p = R(1, 15);
+        return mk(`x + y = ${s} va xy = ${p} boʻlsa, x³ + y³ ni toping.`, s * s * s - 3 * s * p, [s * s * s, s * s * s - s * p, s * s * s + 3 * s * p, s * s * s - 3 * s * p + 3]);
+      },
+      () => {
+        const d = R(1, 9), p = R(1, 20);
+        return mk(`a − b = ${d} va ab = ${p} boʻlsa, a² + b² ni toping.`, d * d + 2 * p, [d * d, d * d - 2 * p, d * d + p, d * d + 2 * p + 2]);
+      },
+      () => {
+        const n = P([98, 99, 101, 102, 103, 97, 199, 201, 49, 51, 999, 1001]);
+        return mk(`Hisoblang: ${n}²`, n * n, [n * n + 2 * n, n * n - 2 * n, n * n + n, n * n + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Koʻphadni koʻpaytuvchilarga ajratish',
+    sec: '§14, §36',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(11, 99), b = R(11, 89);
+        return mk(`Hisoblang: ${a} · ${b} + ${a} · ${100 - b}`, a * 100, [a * (100 + b), a * b, a * (100 - b), a * 100 + a]);
+      },
+      () => {
+        const n = R(2, 30);
+        return mk(`x² − ${n * n} ni koʻpaytuvchilarga ajrating.`, `(x − ${n})(x + ${n})`, [`(x − ${n})²`, `(x + ${n})²`, `(x − ${n * n})(x + 1)`, `(x − ${n})(x − ${n})`]);
+      },
+      () => {
+        const r = R(-9, 9), t = R(-9, 9);
+        if (r === t || !r || !t || r + t === 0) return;
+        const s = r + t, p = r * t, lo = Math.min(r, t), hi = Math.max(r, t);
+        const f = (a: number, b: number) => `(x ${sg(-a)})(x ${sg(-b)})`;
+        return mk(`x² ${sg(-s)}x ${sg(p)} ni koʻpaytuvchilarga ajrating.`, f(lo, hi), [f(-lo, -hi), f(lo, -hi), f(-lo, hi), f(lo + 1, hi - 1)]);
+      },
+      () => {
+        const g = R(2, 6), m = R(1, 5), n = R(1, 6);
+        return mk(`${g * m}x² + ${g * n}x ni umumiy koʻpaytuvchini qavsdan chiqarib yozing.`, `${g}x(${cf(m)}x + ${n})`, [`${g}x(${cf(m)}x − ${n})`, `${g * m}x(x + ${n})`, `${g}(${cf(m)}x² + ${n}x)`, `${g}x(${cf(m)}x + ${n + 1})`]);
+      },
+      () => {
+        const a = R(1, 12), w = R(0, 1);
+        return mk(
+          `x² ${w ? '+' : '−'} ${2 * a}x + ${a * a} ifodani koʻpaytuvchilarga ajrating.`,
+          `(x ${w ? '+' : '−'} ${a})²`,
+          [`(x ${w ? '−' : '+'} ${a})²`, `(x ${w ? '+' : '−'} ${a * a})²`, `(x ${w ? '+' : '−'} ${a})(x ${w ? '−' : '+'} ${a})`, `(x ${w ? '+' : '−'} ${2 * a})²`],
+        );
+      },
+    ],
+  },
+  {
+    en: 'Algebraik kasrlar',
+    sec: '§21',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(2, 15);
+        return mk(`(x² − ${a * a})/(x − ${a}) kasrni qisqartiring.`, `x + ${a}`, [`x − ${a}`, `x + ${a * a}`, `x² + ${a}`, `x − ${a * a}`]);
+      },
+      () => {
+        const a = R(2, 12), t = R(-9, 15);
+        if (t === a) return;
+        return mk(`x = ${t} da (x² − ${a * a})/(x − ${a}) ifodaning qiymatini toping.`, t + a, [t - a, t * t - a * a, t + a * a, a - t]);
+      },
+      () => {
+        const a = R(1, 9), b = R(1, 9), t = R(2, 12);
+        if (t === b) return;
+        return mk(`x = ${t} da (x + ${a})/(x − ${b}) ning qiymatini toping.`, fr(t + a, t - b), [fr(t - a, t + b), fr(t + a, t + b), fr(t - b, t + a), fr(t + a + 1, t - b)]);
+      },
+      () => {
+        const a = R(-9, 9), b = R(-9, 9);
+        if (!a || !b) return;
+        return mk(`(x ${sg(a)})/(x ${sg(b)}) kasr x ning qaysi qiymatida maʼnoga ega emas?`, -b, [b, -a, a, -b + 1]);
+      },
+      () => {
+        const a = R(-9, 9), b = R(-9, 9);
+        if (!a || !b || a === -b) return;
+        return mk(`(x ${sg(a)})/(x ${sg(b)}) kasr x ning qaysi qiymatida nolga teng?`, -a, [a, -b, b, -a + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Chiziqli tenglamalar sistemasi',
+    sec: '§22',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const x = R(-6, 6), y = R(-6, 6), a = R(-5, 5), b = R(-5, 5), c = R(-5, 5), d = R(-5, 5);
+        if (!a || !b || !c || !d || a * d === b * c) return;
+        const w = R(0, 4), r = [x, y, x + y, x - y, x * y], n = ['x', 'y', 'x + y', 'x − y', 'x · y'];
+        return mk(`Tenglamalar sistemasini yeching: ${eq(a, b, a * x + b * y)}; ${eq(c, d, c * x + d * y)}. ${n[w]} ni toping.`, r[w], [r[(w + 1) % 5], r[(w + 2) % 5], -r[w], r[w] + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Chiziqli funksiya',
+    sec: '§23–24',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const k = R(-6, 6), b = R(-9, 9), t = R(-6, 6);
+        if (!k || !b) return;
+        return mk(`y = ${ln(k, b)} funksiyaning x = ${t} dagi qiymatini toping.`, k * t + b, [k * t - b, k + t + b, k * (t + b), -k * t + b]);
+      },
+      () => {
+        const k = R(-6, 6), b = R(-9, 9), x1 = R(-5, 2), x2 = x1 + R(1, 5);
+        if (!k) return;
+        return mk(`A(${x1}; ${k * x1 + b}) va B(${x2}; ${k * x2 + b}) nuqtalardan oʻtuvchi toʻgʻri chiziqning burchak koeffitsiyentini toping.`, k, [-k, k + 1, b, k * 2]);
+      },
+      () => {
+        const k = R(-6, 6), r = R(-8, 8);
+        if (!k || !r) return;
+        return mk(`y = ${ln(k, -k * r)} toʻgʻri chiziq Ox oʻqini qaysi abssissali nuqtada kesadi?`, r, [-r, -k * r, k, r + 1]);
+      },
+      () => {
+        const k = R(-6, 6), m = R(-6, 6), x0 = R(-6, 6), b = R(-9, 9);
+        if (!k || !m || k === m) return;
+        const n = b + (k - m) * x0;
+        return mk(`y = ${ln(k, b)} va y = ${ln(m, n)} toʻgʻri chiziqlar kesishgan nuqtaning abssissasini toping.`, x0, [-x0, x0 + 1, n - b, b - n]);
+      },
+      () => {
+        const a = R(2, 9), b = R(-9, 9), k = R(-9, 9);
+        if (!b || a === k) return;
+        return mk(`y = ax ${sg(b)} va y = ${ln(k, 3)} toʻgʻri chiziqlar parallel boʻlsa, a ni toping.`, k, [-k, k + 1, b, k - 1]);
+      },
+    ],
+  },
+  {
+    en: 'Sonlarga oid masalalar',
+    sec: '§27',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const x = R(5, 40), y = R(1, x - 1);
+        return mk(`Ikki sonning yigʻindisi ${x + y}, ayirmasi ${x - y}. Katta sonni toping.`, x, [y, x + y, x - y, x + 1]);
+      },
+      () => {
+        const m = R(3, 60);
+        return mk(`Ketma-ket uchta natural son yigʻindisi ${3 * m}. Eng kichigini toping.`, m - 1, [m, m + 1, m - 2, m + 2]);
+      },
+      () => {
+        const x = R(3, 40), a = R(2, 6), b = R(1, 30);
+        return mk(`Sonning ${a} baravaridan ${b} ni ayirsak ${a * x - b} hosil boʻladi. Sonni toping.`, x, [x + 1, a * x, x - 1, (a * x - b) / a > 0 && (a * x - b) % a === 0 ? x + a : x + 2]);
+      },
+      () => {
+        const y = R(2, 15), k = R(2, 6);
+        return mk(`Ikki sonning yigʻindisi ${(k + 1) * y}, biri ikkinchisidan ${k} marta katta. Kichik sonni toping.`, y, [k * y, y + 1, (k + 1) * y - k, y * k - y]);
+      },
+      () => {
+        const a = R(2, 40), b = R(2, 40);
+        if ((a + b) % 2 || a === b) return;
+        return mk(`${a} va ${b} sonlarining oʻrta arifmetigini toping.`, (a + b) / 2, [a + b, Math.abs(a - b) / 2, Math.sqrt(a * b) % 1 === 0 ? Math.sqrt(a * b) : (a + b) / 2 + 1, (a + b) / 2 + 2]);
+      },
+    ],
+  },
+  {
+    en: 'Modulli tenglama va tengsizliklar',
+    sec: '§31–32',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(-9, 9), b = R(1, 12);
+        if (!a) return;
+        return mk(`|x ${sg(-a)}| = ${b} tenglama ildizlarining yigʻindisini toping.`, 2 * a, [a, 0, a * a, 2 * a + b]);
+      },
+      () => {
+        const a = R(-9, 9), b = R(1, 12);
+        if (!a) return;
+        return mk(`|x ${sg(-a)}| = ${b} tenglama ildizlarining koʻpaytmasini toping.`, a * a - b * b, [a * a + b * b, -a * a + b * b, a * b, a * a - b * b + 1]);
+      },
+      () => {
+        const a = R(-9, 9), b = R(2, 15);
+        if (!a) return;
+        return mk(`|x ${sg(-a)}| < ${b} tengsizlikning butun yechimlari nechta?`, 2 * b - 1, [2 * b, 2 * b + 1, b, b - 1]);
+      },
+      () => {
+        const a = R(2, 6), t = R(1, 5), x1 = R(1, 9), b = a * t, c = a * x1 + b;
+        return mk(`|${a}x ${sg(b)}| = ${c} tenglamaning katta ildizini toping.`, x1, [-x1, x1 + 1, -x1 - 2 * t, x1 - 1]);
+      },
+      () => {
+        const a = R(-30, 30), b = R(-30, 30), c = R(-9, 9);
+        if (!a || !b) return;
+        return mk(`Hisoblang: |${a} − ${sn(b)}| − |${c}|`, Math.abs(a - b) - Math.abs(c), [a - b - c, Math.abs(a + b) - Math.abs(c), Math.abs(a - b) + Math.abs(c), Math.abs(a - b) - c]);
+      },
+    ],
+  },
+  {
+    en: 'Chala kvadrat va bikvadrat tenglamalar',
+    sec: '§34, §37',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(1, 6), r = R(2, 9);
+        return mk(`${a}x² − ${a * r * r} = 0 tenglamaning musbat ildizini toping.`, r, [r * r, -r, a * r, r + 1]);
+      },
+      () => {
+        const k = R(-12, 12), w = R(0, 1);
+        if (!k) return;
+        return mk(
+          `x² ${sg(-k)}x = 0 tenglama ildizlarining ${w ? 'yigʻindisini' : 'kattasini'} toping.`,
+          w ? k : Math.max(0, k),
+          w ? [-k, 0, k * k, k + 1] : [Math.min(0, k), -k, k + 1, 0],
+        );
+      },
+      () => {
+        const p = R(1, 6), q = R(1, 6), s = P([0, 1, 2]);
+        if (p === q) return;
+        const n = p * p + q * q, m = p * p * q * q, z = `x⁴ − ${n}x² + ${m} = 0`;
+        return s === 0
+          ? mk(`${z} tenglamaning haqiqiy ildizlari nechta?`, 4, [2, 3, 1, 0])
+          : s === 1
+          ? mk(`${z} tenglama ildizlari kvadratlarining yigʻindisini toping.`, 2 * n, [n, 4 * n, 2 * m, n + m])
+          : mk(`${z} tenglamaning eng katta ildizini toping.`, Math.max(p, q), [p * q, Math.min(p, q), n, Math.max(p, q) + 1]);
+      },
+      () => {
+        const p = R(1, 5), q = R(1, 5);
+        if (p === q) return;
+        return mk(`x⁴ − ${p * p + q * q}x² + ${p * p * q * q} = 0 tenglama haqiqiy ildizlarining koʻpaytmasini toping.`, p * p * q * q, [p * q, -p * p * q * q, p * p + q * q, 0]);
+      },
+    ],
+  },
+  {
+    en: 'Ikkinchi darajali tenglamalar sistemasi',
+    sec: '§38',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const x = R(-8, 8), y = R(-8, 8);
+        if (x === y) return;
+        const s = x + y, p = x * y, w = R(0, 3);
+        const r = [x * x + y * y, Math.abs(x - y), Math.max(x, y), (x - y) * (x - y)];
+        const n = ['x² + y²', '|x − y|', 'x ning katta qiymati', '(x − y)²'];
+        return mk(`x + y = ${s}, xy = ${p} boʻlsa, ${n[w]} ni toping.`, r[w], [r[(w + 1) % 4], s * s, r[w] + 1, r[w] + 2]);
+      },
+      () => {
+        const x = R(-8, 8), y = R(-8, 8);
+        if (x === y || !x || !y) return;
+        return mk(`x − y = ${x - y}, xy = ${x * y} boʻlsa, x² + y² ni toping.`, x * x + y * y, [(x - y) * (x - y), x * x + y * y + 2, (x + y) * (x + y), x * y]);
+      },
+    ],
+  },
+  {
+    en: 'Ratsional koʻrsatkichli daraja',
+    sec: '§43',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const n = R(2, 5), r = P([2, 3, 4]), m = R(1, 3), neg = R(0, 1), b = Math.pow(n, r), v = Math.pow(n, m);
+        return mk(
+          `Hisoblang: ${b}^(${neg ? '−' : ''}${m}/${r})`,
+          neg ? fr(1, v) : v,
+          neg ? [fr(1, n), '' + v, fr(1, v * n), fr(1, m * n)] : [fr(1, v), '' + ((b * m) / r > 0 && (b * m) % r === 0 ? (b * m) / r : v + n), '' + (v + 1), '' + n * r],
+        );
+      },
+    ],
+  },
+  {
+    en: 'Sonning standart shakli',
+    sec: '§44',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const d = R(11, 99);
+        if (d % 10 === 0) return;
+        const n = R(1, 8) * P([1, -1]), m = (d / 10).toString().replace('.', ','), ds = '' + d;
+        const num = n > 0 ? ds + Array(n).join('0') : '0,' + Array(-n).join('0') + ds;
+        const f = (mm: string, e: number) => `${mm} · 10${S(e)}`;
+        return mk(`${num} sonni standart shaklda yozing.`, f(m, n), [f(m, n + 1), f(m, n - 1), f(ds, n - 1), f(m, -n)]);
+      },
+    ],
+  },
+  {
+    en: 'Parametrli tenglamalar',
+    sec: '§45–46',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const k = R(-9, 9), m = R(1, 9);
+        if (!k) return;
+        return mk(`(a ${sg(-k)})x = ${m} tenglama a ning qaysi qiymatida yechimga ega emas?`, k, [-k, 0, m, k + 1]);
+      },
+      () => {
+        const k = R(1, 9), t = R(-9, 9);
+        if (t === -k) return;
+        return mk(`(a + ${k})x = a² − ${k * k} tenglamaning a = ${t} dagi ildizini toping.`, t - k, [t + k, k - t, t * t - k * k, t - k + 1]);
+      },
+      () => {
+        const k = R(-6, 6), t = R(-5, 5), n = R(-6, 6), m = R(-9, 9);
+        if (!t || k === n) return;
+        const p = k * t + m - n * t;
+        return mk(`${k}x ${sg(m)} = ${n}x ${sg(p)} tenglamaning ildizi ${t} boʻlsa, p ni toping.`, p, [-p, p + 1, m, k * t + m]);
+      },
+      () => {
+        const r = R(-6, 6), t = R(-6, 6);
+        if (!r || !t || r === t) return;
+        return mk(`x² − ax ${sg(r * t)} = 0 tenglamaning bir ildizi ${r} boʻlsa, a ni toping.`, r + t, [r * t, -(r + t), r - t, r + t + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Harakatga oid masalalar',
+    sec: '§47',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const v = R(20, 90), t = R(2, 9);
+        return mk(`Yoʻl ${v * t} km, avtomobil tezligi ${v} km/soat. Yoʻlga necha soat ketadi?`, t, [t + 1, v + t, (v * t) % 2 === 0 ? (v * t) / 2 : t + 2, t - 1]);
+      },
+      () => {
+        const a = R(30, 70), b = R(30, 70), t = R(2, 6);
+        return mk(`Ikki shahar orasi ${(a + b) * t} km. Ikki avtomobil bir vaqtda bir-biriga qarab ${a} va ${b} km/soat tezlik bilan chiqdi. Necha soatdan keyin uchrashadi?`, t, [t + 1, t - 1, ((a + b) * t) % a === 0 ? ((a + b) * t) / a : t + 2, t * 2]);
+      },
+      () => {
+        const u = R(2, 8), v = R(1, 6), w = u + 2 * v;
+        return mk(`Oqim boʻylab tezlik ${w} km/soat, oqimga qarshi ${u} km/soat. Oqim tezligini toping.`, v, [u + v, w, v + 1, 2 * v]);
+      },
+      () => {
+        const v1 = R(40, 80), v2 = R(10, v1 - 5), t = R(2, 8);
+        return mk(`Ikki mashina bir yoʻnalishda ${v1} va ${v2} km/soat tezlikda ketmoqda. Orqadagisi (tez) oldingisidan ${(v1 - v2) * t} km orqada. Necha soatda yetib oladi?`, t, [t + 1, t - 1, t * 2, t + 3]);
+      },
+      () => {
+        const m = R(1, 4), n = R(1, 4), k = R(1, 4);
+        if (m === n) return;
+        const v1 = m * (m + n) * k, v2 = n * (m + n) * k;
+        return mk(`Yoʻlning yarmi ${v1} km/soat, ikkinchi yarmi ${v2} km/soat tezlik bilan bosib oʻtildi. Oʻrtacha tezlikni toping.`, 2 * m * n * k, [Math.round((v1 + v2) / 2), 2 * m * n * k + 2, Math.abs(v1 - v2), v1]);
+      },
+    ],
+  },
+  {
+    en: 'Ishga oid masalalar',
+    sec: '§48',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const m = R(1, 5), n = R(1, 5), k = R(1, 3);
+        if (m === n) return;
+        const a = m * (m + n) * k, b = n * (m + n) * k;
+        return mk(`Birinchi ishchi ishni ${a} kunda, ikkinchisi ${b} kunda bajaradi. Birga ishlasa necha kunda bajaradi?`, m * n * k, [(a + b) % 2 === 0 ? (a + b) / 2 : m * n * k + 2, a + b, m * n * k + 1, Math.abs(a - b)]);
+      },
+      () => {
+        const a = R(2, 30), t = R(1, a - 1);
+        return mk(`Ishchi ishni ${a} kunda bajaradi. U ${t} kunda ishning qancha qismini bajaradi?`, fr(t, a), [fr(a, t), fr(t, a + t), fr(a - t, a), fr(t + 1, a)]);
+      },
+      () => {
+        const m = R(1, 5), n = R(1, 5), k = R(1, 3);
+        if (m === n) return;
+        const a = m * (m + n) * k, b = n * (m + n) * k;
+        return mk(`Ikki ishchi birga ishni ${m * n * k} kunda bajaradi. Birinchisi yolgʻiz ${a} kunda bajarsa, ikkinchisi yolgʻiz necha kunda bajaradi?`, b, [a + m * n * k, Math.abs(a - m * n * k), b + m, b + 1]);
+      },
+      () => {
+        const n = R(2, 12), d = R(2, 12), m = R(2, 12), k = n * d;
+        if (k % m) return;
+        return mk(`${n} ishchi ishni ${d} kunda bajaradi. ${m} ishchi shu ishni necha kunda bajaradi?`, k / m, [k / m + 1, n + d - m > 0 ? n + d - m : k / m + 2, k * m, k / m - 1]);
+      },
+    ],
+  },
+  {
+    en: 'Aralashmaga oid masalalar',
+    sec: '§49',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(5, 25), b = a + R(10, 50), c = a + R(2, b - a - 1), k = R(1, 4), x = (b - c) * k, y = (c - a) * k;
+        return mk(`${x} kg ${a}% li va ${y} kg ${b}% li eritma aralashtirildi. Hosil boʻlgan eritma necha foizli?`, `${c}%`, [`${Math.round((a + b) / 2)}%`, `${c + 5}%`, `${c - 2}%`, `${b - a}%`]);
+      },
+      () => {
+        const j = R(1, 15), i = R(1, 18);
+        return mk(`${20 * j} kg ${5 * i}% li tuzli eritmada necha kg tuz bor?`, j * i, [j * i + j, 20 * j, 5 * i, j * i - 1]);
+      },
+      () => {
+        const c = R(2, 15), a = c + R(3, 20), k = R(1, 5), x = c * k, y = (a - c) * k;
+        return mk(`${x} kg ${a}% li eritmaga ${y} kg suv qoʻshildi. Yangi eritma necha foizli?`, `${c}%`, [`${a - c}%`, `${c + 3}%`, `${c - 1}%`, `${Math.round(a / 2) || 1}%`]);
+      },
+      () => {
+        const a = R(2, 15), b = a + R(2, 15), k = R(1, 6);
+        return mk(`${b * k} kg ${a}% li eritmadan necha kg suv bugʻlatilsa, ${b}% li eritma hosil boʻladi?`, (b - a) * k, [a * k, b * k - a, (b - a) * k + k, b * k - a * k + 1]);
+      },
+      () => {
+        const a = R(1, 6), b = R(1, 6), k = R(2, 9);
+        if (a === b) return;
+        return mk(`Qotishma ikki komponentdan ${a} : ${b} nisbatda tuzilgan. Qotishma massasi ${(a + b) * k} kg. Birinchi komponent massasi necha kg?`, a * k, [b * k, (a + b) * k, a * k + 1, k]);
+      },
+    ],
+  },
+  {
+    en: 'Funksiyaning aniqlanish sohasi',
+    sec: '§50',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(-9, 9), w = R(0, 4);
+        const s = [`x ≥ ${a}`, `x > ${a}`, `x ≤ ${a}`, `x ≠ ${a}`];
+        if (w === 0) return mk(`y = √(x ${sg(-a)}) funksiyaning aniqlanish sohasini toping.`, s[0], [s[1], s[2], s[3]]);
+        if (w === 1) return mk(`y = 1/(x ${sg(-a)}) funksiyaning aniqlanish sohasini toping.`, s[3], [s[0], s[1], s[2]]);
+        if (w === 2) return mk(`y = √(${a} − x) funksiyaning aniqlanish sohasini toping.`, s[2], [s[0], s[1], s[3]]);
+        if (w === 3) return mk(`y = 1/√(x ${sg(-a)}) funksiyaning aniqlanish sohasini toping.`, s[1], [s[0], s[2], s[3]]);
+        if (a <= 0) return;
+        return mk(`y = √(x² − ${a * a}) funksiyaning aniqlanish sohasini toping.`, `x ≤ −${a} yoki x ≥ ${a}`, [`−${a} ≤ x ≤ ${a}`, `x ≥ ${a}`, `x ≠ ±${a}`]);
+      },
+      () => {
+        const a = R(2, 6), t = R(-6, 6);
+        return mk(`y = √(${a}x ${sg(-a * t)}) funksiyaning aniqlanish sohasini toping.`, `x ≥ ${t}`, [`x ≤ ${t}`, `x > ${t}`, `x ≥ ${-t}`, `x ≥ ${a * t}`]);
+      },
+    ],
+  },
+  {
+    en: 'Koʻrsatkichli funksiya va tengsizliklar',
+    sec: '§58, §60',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(2, 6), k = R(-3, 4);
+        return mk(
+          `f(x) = ${a}^x boʻlsa, f(${k}) ni toping.`,
+          k < 0 ? fr(1, Math.pow(a, -k)) : Math.pow(a, k),
+          [k < 0 ? '' + Math.pow(a, -k) : fr(1, Math.pow(a, k)), '' + a * k, '' + (k < 0 ? -Math.pow(a, -k) : Math.pow(a, k) + a), '' + (Math.pow(a, Math.abs(k)) + 1)],
+        );
+      },
+      () => {
+        const a = R(2, 6), k = R(1, 6);
+        return mk(`${a}^x < ${Math.pow(a, k)} tengsizlikni yeching.`, `x < ${k}`, [`x > ${k}`, `x < ${Math.pow(a, k)}`, `x ≤ ${k}`, `x < ${k + 1}`]);
+      },
+      () => {
+        const a = P([2, 3, 4, 5]), k = R(1, 6);
+        return mk(`(1/${a})^x > (1/${a})^${k} tengsizlikni yeching.`, `x < ${k}`, [`x > ${k}`, `x < ${-k}`, `x ≥ ${k}`, `x < ${k + 1}`]);
+      },
+      () => {
+        const a = R(2, 5), k = R(3, 12);
+        return mk(`${a}^x < ${a}^${k} tengsizlikning natural yechimlari nechta?`, k - 1, [k, k + 1, k - 2, a * k]);
+      },
+      () => {
+        const b = P(['2', '3', '5', '1/2', '1/3', '3/2', '0,5', '0,2']);
+        const up = b === '2' || b === '3' || b === '5' || b === '3/2';
+        return mk(`y = (${b})^x funksiya qanday funksiya?`, up ? 'oʻsuvchi' : 'kamayuvchi', [up ? 'kamayuvchi' : 'oʻsuvchi', 'oʻzgarmas', 'davriy']);
+      },
+    ],
+  },
+  {
+    en: 'Logarifmik tenglamalar',
+    sec: '§65',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const b = R(2, 5), k = R(1, 4), a = R(-6, 6);
+        if (!a) return;
+        return mk(`log${B(b)}(x ${sg(-a)}) = ${k} tenglamani yeching.`, `x = ${Math.pow(b, k) + a}`, [`x = ${Math.pow(b, k) - a}`, `x = ${b * k + a}`, `x = ${Math.pow(b, k)}`, `x = ${Math.pow(b, k) + a + 1}`]);
+      },
+      () => {
+        const i = R(2, 5), j = R(0, i - 1), x0 = Math.pow(2, i), a = x0 - Math.pow(2, j);
+        return mk(`log₂x + log₂(x − ${a}) = ${i + j} tenglamani yeching.`, `x = ${x0}`, [`x = ${x0 - a}`, `x = ${i + j}`, `x = ${x0 * 2}`, `x = ${x0 + a}`]);
+      },
+      () => {
+        const b = R(2, 5), k = R(1, 3), a = R(2, 6), x = R(1, 9), c = Math.pow(b, k) - a * x;
+        return mk(`log${B(b)}(${a}x ${sg(c)}) = ${k} tenglamani yeching.`, `x = ${x}`, [`x = ${x + 1}`, `x = ${-x}`, `x = ${x - 1}`, `x = ${Math.pow(b, k)}`]);
+      },
+      () => {
+        const b = R(2, 6), k = R(2, 4);
+        return mk(`log_x ${Math.pow(b, k)} = ${k} tenglamani yeching.`, `x = ${b}`, [`x = ${k}`, `x = ${Math.pow(b, k)}`, `x = ${b + 1}`, `x = ${b * k}`]);
+      },
+      () => {
+        const b = R(2, 5), a = R(2, 9), c = R(2, 9);
+        return mk(`log${B(b)} x = log${B(b)} ${a} + log${B(b)} ${c} tenglamani yeching.`, `x = ${a * c}`, [`x = ${a + c}`, `x = ${a * c + 1}`, `x = ${Math.abs(a - c)}`, `x = ${a * c * b}`]);
+      },
+    ],
+  },
+  {
+    en: 'Logarifmik tengsizliklar',
+    sec: '§66',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const b = R(2, 5), k = R(1, 4);
+        return mk(`log${B(b)} x < ${k} tengsizlikni yeching.`, `0 < x < ${Math.pow(b, k)}`, [`x < ${Math.pow(b, k)}`, `x > ${Math.pow(b, k)}`, `0 < x < ${k}`, `x < ${k}`]);
+      },
+      () => {
+        const b = R(2, 5), k = R(1, 3), a = R(-6, 6);
+        if (!a) return;
+        return mk(`log${B(b)}(x ${sg(-a)}) > ${k} tengsizlikni yeching.`, `x > ${Math.pow(b, k) + a}`, [`x < ${Math.pow(b, k) + a}`, `x > ${Math.pow(b, k) - a}`, `x > ${Math.pow(b, k)}`, `x > ${b * k + a}`]);
+      },
+      () => {
+        const b = R(2, 5), k = R(1, 3), a = R(-6, 6);
+        if (!a) return;
+        return mk(`log${B(b)}(x ${sg(-a)}) < ${k} tengsizlikni yeching.`, `${a} < x < ${Math.pow(b, k) + a}`, [`x < ${Math.pow(b, k) + a}`, `${a} < x < ${Math.pow(b, k)}`, `x > ${a}`, `0 < x < ${Math.pow(b, k) + a}`]);
+      },
+      () => {
+        const b = P([2, 3]), k = R(1, 4);
+        return mk(`log${B(b)} x < ${k} tengsizlikning natural yechimlari nechta?`, Math.pow(b, k) - 1, [Math.pow(b, k), Math.pow(b, k) - 2, b * k, k]);
+      },
+      () => {
+        const b = P([2, 3, 4]), k = R(1, 3);
+        return mk(`log_(1/${b}) x > ${k} tengsizlikni yeching.`, `0 < x < 1/${Math.pow(b, k)}`, [`x > 1/${Math.pow(b, k)}`, `0 < x < ${Math.pow(b, k)}`, `x < ${k}`, `0 < x < 1/${b * k}`]);
+      },
+    ],
+  },
+  {
+    en: 'Burchakning radian oʻlchovi',
+    sec: '§69',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const d = P(DG);
+        return mk(`${d}° ni radianda ifodalang.`, pi(d, 180), [pi(d, 90), pi(d, 360), pi(d + 15, 180), pi(d, 45)]);
+      },
+      () => {
+        const d = P(DG);
+        return mk(`${pi(d, 180)} radian necha gradusga teng?`, `${d}°`, [`${d * 2}°`, d % 2 === 0 ? `${d / 2}°` : `${d + 15}°`, `${(d + 30) % 360}°`, `${d + 15}°`]);
+      },
+      () => {
+        const r = R(2, 15), k = R(2, 5);
+        return mk(`Radiusi ${r} boʻlgan aylanada ${k} radianli markaziy burchakka mos yoy uzunligini toping.`, r * k, [r + k, r * k * k, r * k + r, 2 * r * k]);
+      },
+      () => {
+        const n = R(5, 24);
+        return mk(`Qavariq muntazam ${n} burchakning ichki burchagini radianda ifodalang.`, pi(n - 2, n), [pi(n - 2, 2 * n), pi(2, n), pi(n - 1, n), pi(n, n + 2)]);
+      },
+      () => {
+        const d = P(DG);
+        if (d % 90 === 0) return;
+        const ch = d < 90 ? 'I' : d < 180 ? 'II' : d < 270 ? 'III' : 'IV';
+        return mk(`${pi(d, 180)} radianli burchak qaysi chorakda joylashgan?`, `${ch} chorak`, ['I', 'II', 'III', 'IV'].filter((x) => x !== ch).map((x) => `${x} chorak`));
+      },
+    ],
+  },
+  {
+    en: 'Trigonometrik funksiyalarning ishorasi va davri',
+    sec: '§71, §89',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const d = R(100, 350);
+        if (d % 90 === 0) return;
+        const f = R(0, 2), nm = ['sin', 'cos', 'tg'][f];
+        const pos = f === 0 ? d < 180 : f === 1 ? d < 90 || d > 270 : (d > 180 && d < 270) || d < 90;
+        const r = pos ? 'musbat' : 'manfiy';
+        return mk(`${nm} ${d}° ning ishorasi qanday?`, r, [pos ? 'manfiy' : 'musbat', 'nolga teng', 'aniqlanmagan']);
+      },
+      () => {
+        const k = R(2, 9), w = R(0, 2);
+        return w === 0
+          ? mk(`y = tg(${k}x) funksiyaning eng kichik davrini toping.`, pi(1, k), [pi(2, k), pi(k, 1), pi(1, 2 * k), pi(k, 2)])
+          : w === 1
+          ? mk(`y = cos(x/${k}) funksiyaning eng kichik davrini toping.`, pn(2 * k), [pn(k), pn(2 * k * k), pi(2, k), pn(4 * k)])
+          : mk(`y = sin(${k}x) funksiyaning eng kichik davrini toping.`, pi(2, k), [pi(1, k), pn(2 * k), pi(4, k), pi(k, 2)]);
+      },
+      () => {
+        const a = R(-7, 7), b = R(-7, 7), w = R(0, 1);
+        if (!a || !b) return;
+        const m = Math.abs(a);
+        return mk(`y = ${a} sin x ${sg(b)} funksiyaning eng ${w ? 'kichik' : 'katta'} qiymatini toping.`, w ? b - m : b + m, [w ? b + m : b - m, b, m, a + b]);
+      },
+      () => {
+        const a = R(2, 9);
+        return mk(`y = ${a} cos x funksiyaning qiymatlar sohasini toping.`, `[−${a}; ${a}]`, ['[−1; 1]', `[0; ${a}]`, `[−${a}; 0]`, `[−${a + 1}; ${a + 1}]`]);
+      },
+    ],
+  },
+  {
+    en: 'Qoʻshish va qoʻsh burchak formulalari',
+    sec: '§74–76',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const s = P([30, 45, 60, 90, 120, 135, 150]), a = R(5, s - 5), b = s - a, f = R(0, 1);
+        const row = TV.filter((x) => x[0] === s)[0];
+        if (a <= 0 || b <= 0) return;
+        const c = row[f + 1] as string;
+        const e = f === 0 ? `sin ${a}° cos ${b}° + cos ${a}° sin ${b}°` : `cos ${a}° cos ${b}° − sin ${a}° sin ${b}°`;
+        return mk(`Hisoblang: ${e}`, c, POOL.filter((x) => x !== c).sort(() => Math.random() - 0.5).slice(0, 3));
+      },
+      () => {
+        const t = P(TRI), a = t[0], b = t[1], c = t[2], w = R(0, 1);
+        return w === 0
+          ? mk(`sin α = ${a}/${c}, 0 < α < π/2 boʻlsa, sin 2α ni toping.`, fr(2 * a * b, c * c), [fr(a * b, c * c), fr(2 * a, c), fr(b * b - a * a, c * c), fr(2 * a * b, c)])
+          : mk(`sin α = ${a}/${c}, 0 < α < π/2 boʻlsa, cos 2α ni toping.`, fr(b * b - a * a, c * c), [fr(2 * a * b, c * c), fr(a * a - b * b, c * c), fr(b * b, c * c), fr(b * b - a * a, c)]);
+      },
+      () => {
+        const p = R(1, 5), q = R(p + 1, p + 6);
+        return mk(`sin α = ${p}/${q} boʻlsa, cos 2α ni toping.`, fr(q * q - 2 * p * p, q * q), [fr(q * q - p * p, q * q), fr(2 * p * q, q * q), fr(q * q - 2 * p, q * q), fr(1 - 2 * p * p, q)]);
+      },
+      () => {
+        const x = R(5, 40), w = R(0, 2);
+        return w === 0
+          ? mk(`2 sin ${x}° cos ${x}° ni soddalashtiring.`, `sin ${2 * x}°`, [`cos ${2 * x}°`, `sin ${x}°`, `2 sin ${2 * x}°`, `sin ${x + 45}°`])
+          : w === 1
+          ? mk(`cos² ${x}° − sin² ${x}° ni soddalashtiring.`, `cos ${2 * x}°`, [`sin ${2 * x}°`, `cos ${x}°`, '1', `cos ${x + 45}°`])
+          : mk(`1 − 2 sin² ${x}° ni soddalashtiring.`, `cos ${2 * x}°`, [`sin ${2 * x}°`, `cos² ${x}°`, `−cos ${2 * x}°`, `sin ${x}°`]);
+      },
+    ],
+  },
+  {
+    en: 'Keltirish formulalari',
+    sec: '§77',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const r = P(TV), f = R(0, 2), m = R(1, 3);
+        if (f === 2 && r[3] === null) return;
+        const nm = ['sin', 'cos', 'tg'][f], c = r[f + 1]!;
+        return mk(`Hisoblang: ${nm} ${r[0] + 360 * m}°`, c, POOL.filter((x) => x !== c).sort(() => Math.random() - 0.5).slice(0, 3));
+      },
+      () => {
+        const r = P(TV), f = R(0, 2);
+        if (r[0] === 0 || (f === 2 && r[3] === null)) return;
+        const nm = ['sin', 'cos', 'tg'][f], c = r[f + 1] as string, v = f === 1 ? c : ng(c);
+        return mk(`Hisoblang: ${nm}(−${r[0]}°)`, v, POOL.filter((x) => x !== v).sort(() => Math.random() - 0.5).slice(0, 3));
+      },
+    ],
+  },
+  {
+    en: 'Sin x = a va tg x = a tenglamalar',
+    sec: '§82–83',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const p = R(-12, 12), q = R(2, 9);
+        if (!p) return;
+        const a = Math.abs(p) / q, n = a < 1 ? 2 : a === 1 ? 1 : 0;
+        return mk(`sin x = ${p}/${q} tenglama [0; 2π] oraliqda nechta yechimga ega?`, n, [n + 1, n + 2, 3, 4]);
+      },
+      () => {
+        const p = R(-12, 12), q = R(2, 9);
+        if (!p) return;
+        const n = Math.abs(p) / q <= 1 ? 1 : 0;
+        return mk(`cos x = ${p}/${q} tenglama [0; π] oraliqda nechta yechimga ega?`, n, [n + 1, 2, 3, n + 2]);
+      },
+      () => {
+        const d = P<[number, string]>([[30, '1/2'], [45, '√2/2'], [60, '√3/2']]), w = R(0, 1);
+        return w === 0
+          ? mk(`0° < x < 90° da sin x = ${d[1]} tenglamaning yechimini toping.`, `${d[0]}°`, [`${90 - d[0]}°`, `${d[0] + 15}°`, `${d[0] * 2}°`])
+          : mk(`0° < x < 90° da cos x = ${d[1]} tenglamaning yechimini toping.`, `${90 - d[0]}°`, [`${d[0]}°`, `${90 - d[0] + 15}°`, `${d[0] * 2}°`]);
+      },
+      () => {
+        const d = P<[number, string]>([[30, '√3/3'], [45, '1'], [60, '√3']]);
+        return mk(`0° < x < 90° da tg x = ${d[1]} tenglamaning yechimini toping.`, `${d[0]}°`, [`${90 - d[0]}°`, `${d[0] + 15}°`, `${d[0] * 2}°`]);
+      },
+      () => {
+        const a = R(-12, 12), q = R(2, 9);
+        if (!a) return;
+        return mk(`tg x = ${a}/${q} tenglama [0; 2π] oraliqda nechta yechimga ega?`, 2, [1, 3, 4, 0]);
+      },
+    ],
+  },
+  {
+    en: 'Hosila',
+    sec: '§95–100',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(1, 5), p = R(2, 4), b = R(-9, 9), c = R(-9, 9), t = R(-3, 4);
+        if (!b || !c) return;
+        return mk(`f(x) = ${cf(a)}x${S(p)} ${sg(b)}x ${sg(c)} boʻlsa, f′(${t}) ni toping.`, a * p * Math.pow(t, p - 1) + b, [a * Math.pow(t, p) + b * t + c, a * p * Math.pow(t, p - 1), a * p * Math.pow(t, p - 1) + b + c, a * (p - 1) * Math.pow(t, p - 1) + b]);
+      },
+      () => {
+        const a = R(1, 4), b = R(-5, 5), n = R(2, 4), t = R(-2, 3);
+        if (!b) return;
+        return mk(`f(x) = (${a}x ${sg(b)})${S(n)} boʻlsa, f′(${t}) ni toping.`, n * a * Math.pow(a * t + b, n - 1), [n * Math.pow(a * t + b, n - 1), a * Math.pow(a * t + b, n), n * a * Math.pow(a * t + b, n), (a * t + b) * n]);
+      },
+      () => {
+        const k = R(1, 5), t = R(-3, 4);
+        return mk(`f(x) = x²(x + ${k}) boʻlsa, f′(${t}) ni toping.`, 3 * t * t + 2 * k * t, [t * t + 2 * k * t, 3 * t * t + k, 3 * t * t + 2 * k, t * t * (t + k)]);
+      },
+      () => {
+        const b = R(-9, 9), t = R(-6, 6);
+        if (!b) return;
+        return mk(`y = x² ${sg(b)}x chiziqqa x = ${t} nuqtada oʻtkazilgan urinmaning burchak koeffitsiyentini toping.`, 2 * t + b, [t * t + b * t, 2 * t, 2 * t - b, t + b]);
+      },
+      () => {
+        const a = R(2, 9), b = R(-9, 9), w = R(0, 1);
+        if (!b) return;
+        return w === 0
+          ? mk(`f(x) = ${a} sin x ${sg(b)} cos x boʻlsa, f′(0) ni toping.`, a, [b, -a, a + b, a - b])
+          : mk(`f(x) = ${a} sin x ${sg(b)} cos x boʻlsa, f′(π/2) ni toping.`, -b, [b, a, -a, a - b]);
+      },
+      () => {
+        const a = R(2, 9), k = R(1, 9);
+        return mk(`f(x) = ${a} ln x boʻlsa, f′(${k}) ni toping.`, fr(a, k), [fr(1, k), fr(a, k * k), fr(a * k, 1), fr(a + 1, k)]);
+      },
+    ],
+  },
+  {
+    en: 'Funksiyaning oʻsishi va ekstremumlari',
+    sec: '§101–103',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const a = R(-9, 9), c = R(-9, 9);
+        return mk(`f(x) = x² ${sg(-2 * a)}x ${sg(c)} funksiyaning minimum nuqtasini toping.`, a, [-a, 2 * a, c, a + 1]);
+      },
+      () => {
+        const k = R(1, 6), w = R(0, 1);
+        return w === 0
+          ? mk(`f(x) = x³ − ${3 * k * k}x funksiyaning maksimum nuqtasini toping.`, -k, [k, 3 * k, -3 * k, 0])
+          : mk(`f(x) = x³ − ${3 * k * k}x funksiyaning minimum nuqtasini toping.`, k, [-k, 3 * k, k * k, 0]);
+      },
+      () => {
+        const p = R(-9, 9), w = R(0, 1);
+        return w === 0
+          ? mk(`f(x) = −x² ${sg(2 * p)}x funksiya qaysi oraliqda oʻsadi?`, `(−∞; ${p})`, [`(${p}; +∞)`, `(−∞; ${-p})`, `(${-p}; +∞)`])
+          : mk(`f(x) = x² ${sg(-2 * p)}x funksiya qaysi oraliqda kamayadi?`, `(−∞; ${p})`, [`(${p}; +∞)`, `(−∞; ${-p})`, `(${-p}; +∞)`]);
+      },
+      () => {
+        const k = R(1, 6);
+        return mk(`f(x) = x³ − ${3 * k * k}x funksiya qaysi oraliqlarda oʻsadi?`, `x < −${k} va x > ${k}`, [`−${k} < x < ${k}`, `x > ${k}`, `x < ${k}`]);
+      },
+      () => {
+        const a = R(-6, 6), b = R(-6, 6);
+        if (a === b || !a || !b) return;
+        const s = a + b;
+        return mk(`f′(x) = (x ${sg(-a)})(x ${sg(-b)}) boʻlsa, ekstremum nuqtalari yigʻindisini toping.`, s, [a * b, -s, a - b, s + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Funksiyaning eng katta va eng kichik qiymati',
+    sec: '§104',
+    grp: 'Algebra va arifmetika',
+    g: [
+      () => {
+        const p = R(-8, 8), c = R(-9, 9);
+        return mk(`f(x) = −x² ${sg(2 * p)}x ${sg(c)} funksiyaning eng katta qiymatini toping.`, p * p + c, [c, p * p - c, -p * p + c, p + c]);
+      },
+      () => {
+        const p = R(-8, 8), c = R(-9, 9);
+        return mk(`f(x) = x² ${sg(-2 * p)}x ${sg(c)} funksiyaning eng kichik qiymatini toping.`, c - p * p, [c + p * p, c, p * p, c - p]);
+      },
+      () => {
+        const k = R(1, 4), w = R(0, 1);
+        return w === 0
+          ? mk(`f(x) = x³ − ${3 * k * k}x funksiyaning [0; ${2 * k}] kesmadagi eng katta qiymatini toping.`, 2 * k * k * k, [-2 * k * k * k, k * k * k, 8 * k * k * k, 0])
+          : mk(`f(x) = x³ − ${3 * k * k}x funksiyaning [0; ${2 * k}] kesmadagi eng kichik qiymatini toping.`, -2 * k * k * k, [2 * k * k * k, 0, -k * k * k, -8 * k * k * k]);
+      },
+      () => {
+        const a = R(2, 9), b = R(-9, 9), m = R(-5, 2), n = m + R(1, 6);
+        if (!b) return;
+        return mk(`f(x) = ${a}x ${sg(b)} funksiyaning [${m}; ${n}] kesmadagi eng katta qiymatini toping.`, a * n + b, [a * m + b, a * (n + m) + b, a * n - b, a * n + b + a]);
+      },
+      () => {
+        const s = 2 * R(2, 20);
+        return mk(`Yigʻindisi ${s} boʻlgan ikki sonning koʻpaytmasi eng koʻpi bilan nechaga teng boʻladi?`, (s * s) / 4, [(s * s) / 2, s, s * s, (s * s) / 4 - 1]);
+      },
+    ],
+  },
+];
+
+const GEOMETRY_TOPICS: RawTopic[] = [
+  {
+    en: 'Burchaklar',
+    sec: '§1',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const x = R(10, 170);
+        return mn(`Qoʻshni burchaklardan biri ${x}° boʻlsa, ikkinchisini toping.`, 180 - x, [x, 90 - x > 0 ? 90 - x : 360 - x, x + 90, 180 + x], '°');
+      },
+      () => {
+        const x = R(5, 85);
+        return mn(`${x}° li burchakning toʻldiruvchi burchagini toping.`, 90 - x, [180 - x, x, 90 + x, x + 10], '°');
+      },
+      () => {
+        const x = 2 * R(5, 85);
+        return mn(`Burchak bissektrisasi uni teng ikkiga boʻladi. ${x}° li burchak bissektrisasi hosil qilgan burchakni toping.`, x / 2, [x, 2 * x, x - 90 > 0 ? x - 90 : x + 45], '°');
+      },
+      () => {
+        const s = 2 * R(10, 89);
+        return mn(`Vertikal burchaklarning yigʻindisi ${s}° boʻlsa, ularning biri necha gradus?`, s / 2, [s, 180 - s / 2, s / 4 + 5], '°');
+      },
+      () => {
+        const p = P([[1, 2], [1, 3], [1, 4], [1, 5], [2, 3], [1, 8], [2, 7], [4, 5]]), s = p[0] + p[1];
+        return mn(`Qoʻshni burchaklar nisbati ${p[0]} : ${p[1]} kabi. Katta burchakni toping.`, (180 * p[1]) / s, [(180 * p[0]) / s, 90 + (180 * p[0]) / s > 180 ? 90 : 90 + (180 * p[0]) / s, (180 * p[1]) / s + 10, (180 * p[1]) / s - 10], '°');
+      },
+    ],
+  },
+  {
+    en: 'Uchburchak burchaklari',
+    sec: '§5',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const a = R(20, 80), b = R(20, 80);
+        return mn(`Uchburchakning ikki burchagi ${a}° va ${b}°. Uchinchi burchagini toping.`, 180 - a - b, [a + b, 180 - a, 180 - b, 360 - a - b], '°');
+      },
+      () => {
+        const x = R(60, 170);
+        return mn(`Uchburchakning bir tashqi burchagi ${x}°. Unga qoʻshni boʻlmagan ikki ichki burchagi yigʻindisini toping.`, x, [180 - x, 360 - x, x / 2 + 10, x + 10], '°');
+      },
+      () => {
+        const a = 2 * R(10, 80);
+        return mn(`Teng yonli uchburchakning uchidagi burchagi ${a}°. Asosidagi burchagini toping.`, (180 - a) / 2, [180 - a, a / 2, 90 - a, (180 - a) / 2 + 10], '°');
+      },
+      () => {
+        const p = P([[1, 2, 3], [2, 3, 4], [1, 1, 2], [2, 3, 5], [3, 4, 5], [1, 2, 6], [1, 4, 5]]), s = p[0] + p[1] + p[2], m = Math.max(...p), g = (180 * m) / s;
+        return mn(`Uchburchak burchaklari nisbati ${p.join(' : ')} kabi. Eng katta burchagini toping.`, g, [(180 * Math.min(...p)) / s, g + 10, g - 10, 90], '°');
+      },
+      () => {
+        const a = R(30, 80), b = R(30, 80);
+        return mn(`Uchburchakning A va B burchaklari ${a}° va ${b}°. C burchakka qoʻshni tashqi burchakni toping.`, a + b, [180 - a - b, a + b + 10, 180 - a, 360 - a - b], '°');
+      },
+    ],
+  },
+  {
+    en: 'Toʻgʻri burchakli uchburchak',
+    sec: '§6–7',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const t = tri();
+        return mn(`Toʻgʻri burchakli uchburchakning katetlari ${t[0]} va ${t[1]}. Gipotenuzasini toping.`, t[2], [t[0] + t[1], t[2] + 1, t[2] - 1, t[1] - t[0] + t[2]]);
+      },
+      () => {
+        const t = tri();
+        return mn(`Gipotenuzasi ${t[2]}, bir kateti ${t[0]} boʻlgan toʻgʻri burchakli uchburchakning ikkinchi katetini toping.`, t[1], [t[2] - t[0], t[1] + 1, t[1] - 1, t[2] + t[0]]);
+      },
+      () => {
+        const a = R(1, 9), b = R(1, 9);
+        if (a === b) return;
+        const n = a * a + b * b;
+        return mk(`Toʻgʻri burchakli uchburchakning katetlari ${a} va ${b}. Gipotenuzasini toping.`, sq(n), [sq(n + 2), sq(n - 1), sq(Math.abs(a * a - b * b)), '' + (a + b)]);
+      },
+      () => {
+        const t = tri();
+        if (t[2] % 2) return;
+        return mn(`Toʻgʻri burchakli uchburchakning gipotenuzasi ${t[2]}. Gipotenuzaga tushirilgan medianani toping.`, t[2] / 2, [t[2], t[2] / 2 + 1, t[2] * 2, t[2] / 4 + 3]);
+      },
+      () => {
+        const a = R(1, 12);
+        return mk(`Kvadratning tomoni ${a}. Diagonalini toping.`, cr(a, 2), [cr(a, 3), '' + 2 * a, cr(2 * a, 2), '' + (a + 1)]);
+      },
+    ],
+  },
+  {
+    en: 'Burchakning sinusi, kosinusi, tangensi',
+    sec: '§8',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const t = P(T3.slice(0, 5)), k = R(1, 4), a = t[0] * k, b = t[1] * k, c = t[2] * k, f = R(0, 3);
+        const r = [fr(a, c), fr(b, c), fr(a, b), fr(b, a)], n = ['sin', 'cos', 'tg', 'ctg'];
+        return mk(`Toʻgʻri burchakli uchburchakda katetlari ${a} va ${b}, gipotenuzasi ${c}. α burchak ${a} li katet qarshisida yotadi. ${n[f]} α ni toping.`, r[f], r.filter((_, i) => i !== f));
+      },
+      () => {
+        const c = 2 * R(1, 15), w = P([0, 1, 2]);
+        return w === 0
+          ? mn(`Gipotenuzasi ${c}, oʻtkir burchaklaridan biri 30° boʻlgan toʻgʻri burchakli uchburchakda shu burchak qarshisidagi katetni toping.`, c / 2, [c, c / 2 + 1, c * 2, c / 2 - 1])
+          : w === 1
+          ? mk(`Gipotenuzasi ${c}, oʻtkir burchaklaridan biri 60° boʻlgan toʻgʻri burchakli uchburchakda shu burchak qarshisidagi katetni toping.`, cr(c / 2, 3), [cr(c / 2, 2), '' + c / 2, cr(c, 3), cr(c / 3 + 1, 3)])
+          : mk(`Gipotenuzasi ${c}, oʻtkir burchaklaridan biri 45° boʻlgan toʻgʻri burchakli uchburchakda katetni toping.`, cr(c / 2, 2), [cr(c / 2, 3), '' + c / 2, cr(c, 2), cr(c, 3)]);
+      },
+      () => {
+        const t = P(T3.slice(0, 5)), k = R(1, 4), a = t[0] * k, b = t[1] * k, c = t[2] * k;
+        return mk(`Toʻgʻri burchakli uchburchakning katetlari ${a} va ${b}. Gipotenuzaga tushirilgan balandlikni toping.`, fr(a * b, c), [fr(a * b, a + b), fr(a + b, c), fr(a * b, 2 * c), fr(a * c, b)]);
+      },
+      () => {
+        const t = P(T3.slice(0, 5)), k = R(1, 4), a = t[0] * k, b = t[1] * k, c = t[2] * k;
+        return mk(`Toʻgʻri burchakli uchburchakda katet ${a} va gipotenuza ${c}. Shu katetning gipotenuzadagi proyeksiyasini toping.`, fr(a * a, c), [fr(a, c), fr(b * b, c), fr(a * a, 2 * c), '' + a]);
+      },
+    ],
+  },
+  {
+    en: 'Sinuslar va kosinuslar teoremasi',
+    sec: '§9',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const w = R(0, 3), a = 2 * R(1, 12);
+        return w === 0
+          ? mn(`Uchburchakning bir tomoni ${a}, uning qarshisidagi burchak 30°. Tashqi chizilgan aylana radiusini toping.`, a, [a / 2, 2 * a, a + 2])
+          : w === 1
+          ? mn(`Uchburchakning bir tomoni ${a}, uning qarshisidagi burchak 90°. Tashqi chizilgan aylana radiusini toping.`, a / 2, [a, 2 * a, a / 2 + 1])
+          : w === 2
+          ? mk(`Uchburchakning bir tomoni ${a}, uning qarshisidagi burchak 45°. Tashqi chizilgan aylana radiusini toping.`, cr(a / 2, 2), ['' + a, cr(a, 2), cr(a / 2, 3)])
+          : mk(`Uchburchakning bir tomoni ${a}, uning qarshisidagi burchak 60°. Tashqi chizilgan aylana radiusini toping.`, `${a}√3/3`, [`${a}√3/2`, '' + a, `${a / 2}√3`]);
+      },
+      () => {
+        const a = R(2, 12), b = R(2, 12), w = P([60, 120, 90]);
+        const n = w === 60 ? a * a + b * b - a * b : w === 120 ? a * a + b * b + a * b : a * a + b * b;
+        return mk(`Uchburchakning ikki tomoni ${a} va ${b}, ular orasidagi burchak ${w}°. Uchinchi tomonini toping.`, sq(n), [sq(a * a + b * b), sq(n + a), sq(Math.abs(a * a + b * b - (w === 60 ? -1 : 1) * a * b) + 1), '' + (a + b)]);
+      },
+      () => {
+        const a = R(3, 12), b = R(3, 12), c = R(Math.abs(a - b) + 1, a + b - 1);
+        const n = a * a + b * b - c * c, d = 2 * a * b;
+        return mk(`Uchburchakning tomonlari ${a}, ${b} va ${c}. ${c} tomon qarshisidagi burchakning kosinusini toping.`, fr(n, d), [fr(-n, d), fr(a * a + c * c - b * b, 2 * a * c), fr(n, a * b), fr(n + 1, d)]);
+      },
+      () => {
+        const a = 2 * R(1, 12), w = R(0, 3);
+        return w === 0
+          ? mn(`Uchburchakda A=30°, B=90°, BC=${a}. AC ni toping.`, 2 * a, [a, a / 2, 3 * a])
+          : w === 1
+          ? mk(`Uchburchakda A=30°, B=45°, BC=${a}. AC ni toping.`, cr(a, 2), [cr(a, 3), '' + 2 * a, cr(a / 2, 2)])
+          : w === 2
+          ? mk(`Uchburchakda A=30°, B=60°, BC=${a}. AC ni toping.`, cr(a, 3), [cr(a, 2), '' + 2 * a, cr(a / 2, 3)])
+          : mk(`Uchburchakda A=45°, B=90°, BC=${a}. AC ni toping.`, cr(a, 2), [cr(a, 3), '' + 2 * a, '' + a]);
+      },
+    ],
+  },
+  {
+    en: 'Uchburchakning yuzi',
+    sec: '§13',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const a = 2 * R(2, 15), h = R(2, 15);
+        return mn(`Uchburchakning asosi ${a}, balandligi ${h}. Yuzini toping.`, (a * h) / 2, [a * h, a + h, (a * h) / 2 + h, (a * h) / 4]);
+      },
+      () => {
+        const t = P(TL), k = R(1, 2);
+        return mn(`Uchburchakning tomonlari ${t[0] * k}, ${t[1] * k}, ${t[2] * k}. Yuzini toping.`, t[3] * k * k, [t[3] * k * k + k, t[3] * k, t[3] * k * k * 2, t[3] * k * k - k]);
+      },
+      () => {
+        const a = R(3, 14), b = R(3, 14);
+        return mk(`Uchburchakning ikki tomoni ${a} va ${b}, ular orasidagi burchak 30°. Yuzini toping.`, fr(a * b, 4), [fr(a * b, 2), '' + a * b, fr(a * b, 8), fr(a * b + 1, 4)]);
+      },
+      () => {
+        const m = R(1, 12);
+        return mk(`Teng tomonli uchburchakning tomoni ${2 * m}. Yuzini toping.`, cr(m * m, 3), [cr(2 * m * m, 3), cr(m, 3), cr(m * m, 2), '' + m * m]);
+      },
+      () => {
+        const a = 2 * R(2, 12), h = R(2, 12), Sval = (a * h) / 2;
+        return mn(`Uchburchakning yuzi ${Sval}, asosi ${a}. Shu asosga tushirilgan balandlikni toping.`, h, [Sval % a === 0 ? Sval / a : h + 2, Sval, a - h > 0 ? a - h : h + 3, 2 * h]);
+      },
+    ],
+  },
+  {
+    en: 'Uchburchaklar oʻxshashligi',
+    sec: '§14',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const P0 = R(6, 40), k = R(2, 5);
+        return mn(`Oʻxshash uchburchaklarning oʻxshashlik koeffitsiyenti ${k}. Kichigining perimetri ${P0} boʻlsa, kattasining perimetrini toping.`, P0 * k, [P0 + k, P0 * k * k, P0 * k + P0, P0 * 2]);
+      },
+      () => {
+        const Sval = R(2, 20), k = R(2, 5);
+        return mn(`Oʻxshash uchburchaklarning oʻxshashlik koeffitsiyenti ${k}. Kichigining yuzi ${Sval} boʻlsa, kattasining yuzini toping.`, Sval * k * k, [Sval * k, Sval + k * k, Sval * k * k * k, Sval * k * 2]);
+      },
+      () => {
+        const a = R(2, 9), k = R(2, 5), c = R(2, 12);
+        return mn(`ABC va A₁B₁C₁ uchburchaklar oʻxshash. AB = ${a}, A₁B₁ = ${a * k}, BC = ${c}. B₁C₁ ni toping.`, c * k, [c + k, c * k + a, c * a, c * k * k]);
+      },
+      () => {
+        const m = R(1, 7), n = R(1, 7), t = R(1, 6), l = (m + n) * t;
+        return mn(`ABC uchburchakda MN ‖ AC (M∈AB, N∈BC), BM = ${m}, MA = ${n}, AC = ${l}. MN ni toping.`, m * t, [n * t, l - m * t, m + t, l % 2 === 0 ? l / 2 : l + 1]);
+      },
+      () => {
+        const h = R(1, 4), s = R(1, 5), k = R(2, 12);
+        return mn(`Uzunligi ${h} m boʻlgan tayoqning soyasi ${s} m, binoning soyasi ${s * k} m. Bino necha metr balandlikda?`, h * k, [h + k, s * k, h * k + s, h * k * 2]);
+      },
+    ],
+  },
+  {
+    en: 'Kvadrat va toʻgʻri toʻrtburchak',
+    sec: '§16–17',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const a = R(2, 20), b = R(2, 20), w = R(0, 2);
+        if (a === b) return;
+        return w === 0
+          ? mn(`Toʻgʻri toʻrtburchakning tomonlari ${a} va ${b}. Perimetrini toping.`, 2 * (a + b), [a * b, a + b, 2 * a * b, 2 * (a + b) + 2])
+          : w === 1
+          ? mn(`Toʻgʻri toʻrtburchakning tomonlari ${a} va ${b}. Yuzini toping.`, a * b, [2 * (a + b), a + b, a * b + a, a * b - b])
+          : mk(`Toʻgʻri toʻrtburchakning tomonlari ${a} va ${b}. Diagonalini toping.`, sq(a * a + b * b), [sq(a * a + b * b + 1), '' + (a + b), sq(a * a + b * b + a), sq(Math.abs(a * a - b * b) + 1)]);
+      },
+      () => {
+        const a = R(2, 15);
+        return mn(`Kvadratning yuzi ${a * a}. Perimetrini toping.`, 4 * a, [2 * a, a * a, 4 * a + 4, 8 * a]);
+      },
+      () => {
+        const d = 2 * R(1, 12);
+        return mk(`Kvadratning diagonali ${d}. Tomonini toping.`, cr(d / 2, 2), ['' + d / 2, cr(d, 2), cr(d / 2, 3), '' + d]);
+      },
+      () => {
+        const a = R(2, 12), b = R(2, 12), p = 2 * (a + b);
+        if (a === b) return;
+        return mn(`Toʻgʻri toʻrtburchakning perimetri ${p}, bir tomoni ${a}. Yuzini toping.`, a * b, [a * (p - a), (p * a) / 2, a * b + a, b * b]);
+      },
+      () => {
+        const d = R(2, 12);
+        return mn(`Kvadratning diagonali ${d}√2. Yuzini toping.`, d * d, [d * d * 2, d, 2 * d, d % 2 === 0 ? (d * d) / 2 : d * d + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Romb va parallelogramm',
+    sec: '§18–19',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const t = tri();
+        return mn(`Rombning diagonallari ${2 * t[0]} va ${2 * t[1]}. Tomonini toping.`, t[2], [t[0] + t[1], t[2] + 1, 2 * t[2], t[2] - 1]);
+      },
+      () => {
+        const a = 2 * R(1, 10), b = 2 * R(1, 10);
+        return mn(`Rombning diagonallari ${a} va ${b}. Yuzini toping.`, (a * b) / 2, [a * b, a + b, (a * b) % 4 === 0 ? (a * b) / 4 : a * b + 2, (a * b) / 2 + a]);
+      },
+      () => {
+        const a = R(2, 15), w = R(0, 1);
+        return w === 0
+          ? mn(`Rombning perimetri ${4 * a}. Tomonini toping.`, a, [2 * a, 4 * a, a + 2, a + 3])
+          : mk(`Rombning tomoni ${a}, oʻtkir burchagi 60°. Katta diagonalini toping.`, cr(a, 3), [cr(a, 2), '' + a, '' + 2 * a, cr(2 * a, 3)]);
+      },
+      () => {
+        const a = 2 * R(2, 12), b = R(2, 12);
+        return mn(`Parallelogramning qoʻshni tomonlari ${a} va ${b}, ular orasidagi burchak 30°. Yuzini toping.`, (a * b) / 2, [a * b, (a * b) / 4 + 1, a + b, (a * b) / 2 + a]);
+      },
+      () => {
+        const a = R(2, 12), b = R(2, 12), p = 2 * (a + b);
+        return mn(`Parallelogramning perimetri ${p}, bir tomoni ${a}. Ikkinchi tomonini toping.`, b, [p - a, p / 2, b + a, 2 * b]);
+      },
+      () => {
+        const a = R(3, 15), h = R(2, 12);
+        return mn(`Parallelogramning asosi ${a}, balandligi ${h}. Yuzini toping.`, a * h, [(a * h) % 2 === 0 ? (a * h) / 2 : a + h, 2 * (a + h), a * h + a, a + h]);
+      },
+    ],
+  },
+  {
+    en: 'Trapetsiya',
+    sec: '§20–21',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const a = R(2, 20), b = R(2, 20);
+        if ((a + b) % 2 || a === b) return;
+        return mn(`Trapetsiyaning asoslari ${a} va ${b}. Oʻrta chizigʻini toping.`, (a + b) / 2, [a + b, Math.abs(a - b), (a + b) / 2 + 1, (a * b) % 2 === 0 ? (a * b) / 2 : a]);
+      },
+      () => {
+        const a = R(2, 20), b = R(2, 20), h = 2 * R(1, 10);
+        if (a === b) return;
+        return mn(`Trapetsiyaning asoslari ${a} va ${b}, balandligi ${h}. Yuzini toping.`, ((a + b) * h) / 2, [(a + b) * h, (a * b * h) / 2, ((a + b) * h) / 2 + h, (Math.abs(a - b) * h) / 2]);
+      },
+      () => {
+        const a = R(2, 20), m = R(a + 1, a + 15);
+        return mn(`Trapetsiyaning oʻrta chizigʻi ${m}, asoslaridan biri ${a}. Ikkinchi asosini toping.`, 2 * m - a, [m - a, 2 * m, m + a, 2 * m - a + 2]);
+      },
+      () => {
+        const t = tri(), b = R(2, 10), a = b + 2 * t[0];
+        return mn(`Teng yonli trapetsiyaning asoslari ${a} va ${b}, yon tomoni ${t[2]}. Balandligini toping.`, t[1], [t[2] - t[0], t[0], t[2] + 1, t[1] + 2]);
+      },
+      () => {
+        const m = R(3, 15), h = R(2, 12);
+        return mn(`Trapetsiyaning yuzi ${m * h}, balandligi ${h}. Oʻrta chizigʻini toping.`, m, [2 * m, m + h, m * h, m + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Koʻpburchaklar',
+    sec: '§22',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const n = R(5, 25);
+        return mn(`Qavariq ${n} burchakli koʻpburchak ichki burchaklarining yigʻindisini toping.`, (n - 2) * 180, [n * 180, (n - 1) * 180, (n - 2) * 90, 360], '°');
+      },
+      () => {
+        const n = R(5, 25);
+        return mn(`Qavariq ${n} burchakli koʻpburchakning diagonallari sonini toping.`, (n * (n - 3)) / 2, [n * (n - 3), (n * (n - 1)) / 2, (n * (n - 2)) / 2, n - 3]);
+      },
+      () => {
+        const n = P([5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30, 36]);
+        return mn(`Muntazam ${n} burchakning ichki burchagini toping.`, ((n - 2) * 180) / n, [360 / n, ((n - 2) * 180) / n + 6, 180 - ((n - 2) * 180) / n + 90, ((n - 2) * 180) / n - 6], '°');
+      },
+      () => {
+        const x = P([10, 12, 15, 18, 20, 24, 30, 36, 40, 45, 60, 72]);
+        return mn(`Muntazam koʻpburchakning tashqi burchagi ${x}°. U necha burchakli?`, 360 / x, [180 / x, 360 / x + 2, 360 / x - 2, x], '');
+      },
+      () => {
+        const n = P([5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30, 36]), a = ((n - 2) * 180) / n;
+        return mn(`Muntazam koʻpburchakning ichki burchagi ${a}°. Uning tomonlari sonini toping.`, n, [n + 2, n - 1, n + 4, Math.round(360 / a) || n + 1]);
+      },
+    ],
+  },
+  {
+    en: 'Aylana uzunligi va doira yuzi',
+    sec: '§24–25, §29–30',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const r = R(2, 20);
+        return mk(`Radiusi ${r} boʻlgan aylananing uzunligini toping.`, pn(2 * r), [pn(r), pn(r * r), pn(4 * r), pn(2 * r + 2)]);
+      },
+      () => {
+        const d = R(2, 30);
+        return mk(`Diametri ${d} boʻlgan aylananing uzunligini toping.`, pn(d), [pn(2 * d), pn(d * d), pn(d % 2 === 0 ? d / 2 : d + 3), pn(d + 2)]);
+      },
+      () => {
+        const L = 2 * R(2, 20);
+        return mn(`Aylananing uzunligi ${pn(L)}. Radiusini toping.`, L / 2, [L, (L * L) / 4, L / 4 + 3, L + 2]);
+      },
+      () => {
+        const r = R(2, 20);
+        return mk(`Radiusi ${r} boʻlgan doiraning yuzini toping.`, pn(r * r), [pn(2 * r), pn(r), pn(r * r * 2), pn(r * r + r)]);
+      },
+      () => {
+        const r = R(2, 15);
+        return mn(`Doiraning yuzi ${pn(r * r)}. Radiusini toping.`, r, [r * r, 2 * r, r + 1, r - 1]);
+      },
+      () => {
+        const r = R(3, 18), a = P([30, 45, 60, 90, 120, 135, 150, 180]);
+        return mk(`Radiusi ${r}, markaziy burchagi ${a}° boʻlgan yoy uzunligini toping.`, pi(r * a, 180), [pi(2 * r * a, 180), pi(r * a, 360), pi(r * r * a, 180), pi(r * a + 10, 180)]);
+      },
+      () => {
+        const r = R(3, 18), a = P([30, 45, 60, 90, 120, 135, 150, 180]);
+        return mk(`Radiusi ${r}, markaziy burchagi ${a}° boʻlgan doiraviy sektorning yuzini toping.`, pi(r * r * a, 360), [pi(r * a, 180), pi(r * r * a, 180), pi(2 * r * r * a, 360), pi(r * r * a + 10, 360)]);
+      },
+    ],
+  },
+  {
+    en: 'Markaziy va ichki burchaklar',
+    sec: '§26',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const x = 2 * R(10, 89);
+        return mn(`Markaziy burchak ${x}° boʻlsa, shu yoyga tiralgan ichki burchakni toping.`, x / 2, [x, 2 * x, 180 - x / 2], '°');
+      },
+      () => {
+        const x = R(10, 89);
+        return mn(`Ichki burchak ${x}° boʻlsa, u tiralgan yoyning gradus oʻlchovini toping.`, 2 * x, [x, x / 2 + 5, 180 - x], '°');
+      },
+      () => {
+        const x = 2 * R(10, 89);
+        return mn(`Urinma va vatar orasidagi burchak yoyning yarmiga teng. Yoy ${x}° boʻlsa, urinma va vatar orasidagi burchakni toping.`, x / 2, [x, 2 * x, 180 - x / 2], '°');
+      },
+      () => {
+        const x = R(30, 150);
+        return mn(`Aylanaga ichki chizilgan toʻrtburchakning A burchagi ${x}°. Qarama-qarshi C burchagini toping.`, 180 - x, [x, 360 - x, 90 - x > 0 ? 90 - x : x / 2 + 5], '°');
+      },
+      () => {
+        const a = R(30, 80), b = R(30, 80);
+        return mn(`Aylanaga ichki chizilgan ABC uchburchakda A=${a}°, B=${b}°. AB yoyining gradus oʻlchovini toping.`, 2 * (180 - a - b), [180 - a - b, a + b, 2 * (a + b), 360 - 2 * a], '°');
+      },
+    ],
+  },
+  {
+    en: 'Vatar, urinma va kesuvchi',
+    sec: '§23, §27–28',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const c = R(2, 9), d = R(2, 9), p = c * d, a = dv(p);
+        if (!a) return;
+        const b = p / a;
+        return mn(`Aylananing ikki vatari kesishadi. Birinchi vatarning boʻlaklari ${a} va ${b}, ikkinchisining bir boʻlagi ${c}. Ikkinchi boʻlagini toping.`, d, [a + b - c > 0 ? a + b - c : d + 3, d + 1, a * b, c + d]);
+      },
+      () => {
+        const t = R(3, 12), m = dv(t * t);
+        if (!m || m >= t) return;
+        const n = (t * t) / m - m;
+        return mn(`Aylanadan tashqaridagi nuqtadan urinma (${t}) va kesuvchi oʻtkazildi. Kesuvchining tashqi qismi ${m}. Uning ichki qismini toping.`, n, [(t * t) / m, t - m, n + m, t + m]);
+      },
+      () => {
+        const t = tri();
+        return mn(`Aylana markazidan ${t[2]} masofadagi nuqtadan aylanaga urinma oʻtkazildi. Aylana radiusi ${t[0]}. Urinma uzunligini toping.`, t[1], [t[2] - t[0], t[2] + t[0], t[1] + 1, t[0] + t[1]]);
+      },
+      () => {
+        const t = tri();
+        return mn(`Aylana radiusi ${t[2]}, markazdan vatargacha masofa ${t[0]}. Vatar uzunligini toping.`, 2 * t[1], [t[1], t[2] + t[0], 2 * t[2] - t[0], 2 * t[1] + 2]);
+      },
+      () => {
+        const c = R(2, 8), d = R(c + 1, 14), p = c * d, a = dv(p);
+        if (!a || a >= p / a) return;
+        const b = p / a;
+        const ans = (a * b) / c;
+        return mn(`Nuqtadan aylanaga ikki kesuvchi oʻtkazildi. Birinchisining tashqi qismi ${a}, butun uzunligi ${b}. Ikkinchisining tashqi qismi ${c} boʻlsa, uning butun uzunligini toping.`, ans % 1 === 0 ? ans : d, [ans % 1 === 0 ? c + a : d + 1, b + c, a + b + c, d + 2]);
+      },
+    ],
+  },
+  {
+    en: 'Uchburchakka ichki va tashqi chizilgan aylana',
+    sec: '§32–33',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const t = tri();
+        return mn(`Katetlari ${t[0]} va ${t[1]} boʻlgan toʻgʻri burchakli uchburchakka ichki chizilgan aylana radiusini toping.`, (t[0] + t[1] - t[2]) / 2, [(t[0] + t[1] + t[2]) / 2, t[2] / 2, (t[0] + t[1] - t[2]) / 2 + 1, Math.floor((t[0] * t[1]) / (t[0] + t[1] + t[2])) + 2]);
+      },
+      () => {
+        const t = tri();
+        if (t[2] % 2) return;
+        return mn(`Toʻgʻri burchakli uchburchakning gipotenuzasi ${t[2]}. Tashqi chizilgan aylana radiusini toping.`, t[2] / 2, [t[2], t[2] / 4 + 2, t[2] / 2 + 1, t[2] * 2]);
+      },
+      () => {
+        const t = P(TL), k = R(1, 2), p = (t[0] + t[1] + t[2]) * k;
+        return mk(`Uchburchakning tomonlari ${t[0] * k}, ${t[1] * k}, ${t[2] * k}. Unga ichki chizilgan aylana radiusini toping.`, fr(2 * t[3] * k * k, p), [fr(t[3] * k * k, p), fr(t[3] * k * k * 4, p), fr(2 * t[3] * k * k, p + 2), fr(t[3] * k, p)]);
+      },
+      () => {
+        const t = P(TL), k = R(1, 2);
+        return mk(`Uchburchakning tomonlari ${t[0] * k}, ${t[1] * k}, ${t[2] * k}. Unga tashqi chizilgan aylana radiusini toping.`, fr(t[0] * t[1] * t[2] * k, 4 * t[3]), [fr(t[0] * t[1] * t[2] * k, 2 * t[3]), fr(t[0] * t[1] * t[2], 4 * t[3] * k), fr(t[0] * t[1] * t[2] * k, 4 * t[3] + 2), fr(t[3] * k, t[0] + t[1] + t[2])]);
+      },
+      () => {
+        const m = R(1, 12), w = R(0, 1);
+        return w === 0
+          ? mk(`Teng tomonli uchburchakning tomoni ${6 * m}. Ichki chizilgan aylana radiusini toping.`, cr(m, 3), [cr(2 * m, 3), cr(m, 2), '' + m, cr(3 * m, 3)])
+          : mk(`Teng tomonli uchburchakning tomoni ${6 * m}. Tashqi chizilgan aylana radiusini toping.`, cr(2 * m, 3), [cr(m, 3), cr(2 * m, 2), '' + 2 * m, cr(3 * m, 3)]);
+      },
+    ],
+  },
+  {
+    en: 'Koordinatalar va vektorlar',
+    sec: '§39–46',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const x1 = R(-8, 8), y1 = R(-8, 8), x2 = R(-8, 8), y2 = R(-8, 8);
+        if (x1 === x2 && y1 === y2) return;
+        const n = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+        return mk(`A(${x1}; ${y1}) va B(${x2}; ${y2}) nuqtalar orasidagi masofani toping.`, sq(n), [sq(n + 1), sq(n + 2), '' + (Math.abs(x2 - x1) + Math.abs(y2 - y1)), sq(Math.abs(x1 * x1 + y1 * y1 - x2 * x2 - y2 * y2) + 3)]);
+      },
+      () => {
+        const x1 = R(-9, 9), y1 = R(-9, 9), x2 = R(-9, 9), y2 = R(-9, 9);
+        if ((x1 + x2) % 2 || (y1 + y2) % 2) return;
+        const m = `(${(x1 + x2) / 2}; ${(y1 + y2) / 2})`;
+        return mk(`A(${x1}; ${y1}) va B(${x2}; ${y2}) kesma oʻrtasining koordinatalarini toping.`, m, [`(${x1 + x2}; ${y1 + y2})`, `(${(x2 - x1) / 2}; ${(y2 - y1) / 2})`, `(${(x1 + x2) / 2 + 1}; ${(y1 + y2) / 2 - 1})`]);
+      },
+      () => {
+        const a = R(-6, 6), b = R(-6, 6), r = R(2, 9);
+        if (!a || !b) return;
+        return mk(`(x ${sg(-a)})² + (y ${sg(-b)})² = ${r * r} aylananing markazini toping.`, `(${a}; ${b})`, [`(${-a}; ${-b})`, `(${a}; ${-b})`, `(${-a}; ${b})`]);
+      },
+      () => {
+        const x1 = R(-9, 9), y1 = R(-9, 9), x2 = R(-9, 9), y2 = R(-9, 9), w = R(0, 2);
+        return w === 0
+          ? mk(`a(${x1}; ${y1}) va b(${x2}; ${y2}) vektorlar uchun a + b ni toping.`, `(${x1 + x2}; ${y1 + y2})`, [`(${x1 - x2}; ${y1 - y2})`, `(${x1 * x2}; ${y1 * y2})`, `(${x1 + x2 + 1}; ${y1 + y2})`])
+          : w === 1
+          ? mk(`a(${x1}; ${y1}) va b(${x2}; ${y2}) vektorlarning skalyar koʻpaytmasini toping.`, x1 * x2 + y1 * y2, [x1 * y2 + x2 * y1, x1 * x2 - y1 * y2, x1 + x2 + y1 + y2, x1 * x2 + y1 * y2 + 2])
+          : mk(`a(${x1}; ${y1}) va b(${x2}; ${y2}) vektorlar uchun a − b ni toping.`, `(${x1 - x2}; ${y1 - y2})`, [`(${x1 + x2}; ${y1 + y2})`, `(${x2 - x1}; ${y2 - y1})`, `(${x1 - x2}; ${y1 + y2})`]);
+      },
+      () => {
+        const t = P(T3), s = P([1, -1]);
+        return mn(`a(${t[0] * s}; ${t[1]}) vektorning uzunligini toping.`, t[2], [t[0] + t[1], t[2] + 1, t[1] - t[0] + t[2], t[2] - 1]);
+      },
+      () => {
+        const k = R(-6, 6), q = R(2, 6), t = R(1, 5);
+        if (!k) return;
+        return mn(`a(x; ${q}) va b(${-q * t}; ${k * t}) vektorlar perpendikulyar boʻlsa, x ni toping.`, k, [-k, k + 1, k * 2, q], '');
+      },
+    ],
+  },
+  {
+    en: 'Kub va parallelepiped',
+    sec: '§48–49',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const a = R(2, 12), w = R(0, 3);
+        return w === 0
+          ? mn(`Kubning qirrasi ${a}. Hajmini toping.`, a * a * a, [a * a, 6 * a * a, 3 * a, a * a * a + a])
+          : w === 1
+          ? mn(`Kubning qirrasi ${a}. Toʻla sirtini toping.`, 6 * a * a, [4 * a * a, a * a * a, 6 * a, 12 * a])
+          : w === 2
+          ? mk(`Kubning qirrasi ${a}. Fazoviy diagonalini toping.`, cr(a, 3), [cr(a, 2), '' + 3 * a, cr(3 * a, 3), '' + a])
+          : mk(`Kubning qirrasi ${a}. Yon yoqining diagonalini toping.`, cr(a, 2), [cr(a, 3), '' + 2 * a, cr(2 * a, 2), '' + a]);
+      },
+      () => {
+        const a = R(2, 10);
+        return mn(`Kubning hajmi ${a * a * a}. Qirrasini toping.`, a, [a * a, a + 1, a * 3, (a * a * a) % 6 === 0 ? (a * a * a) / 6 : a + 2]);
+      },
+      () => {
+        const d = R(2, 12);
+        return mn(`Kubning fazoviy diagonali ${d}√3. Hajmini toping.`, d * d * d, [d * d, 3 * d * d, d * d * d * 3, d * 3]);
+      },
+      () => {
+        const a = R(2, 9), b = R(2, 9), c = R(2, 9), w = R(0, 1);
+        return w === 0
+          ? mn(`Toʻgʻri burchakli parallelepipedning oʻlchamlari ${a}, ${b}, ${c}. Hajmini toping.`, a * b * c, [a * b + c, 2 * (a * b + b * c + a * c), a + b + c, a * b * c + a])
+          : mn(`Toʻgʻri burchakli parallelepipedning oʻlchamlari ${a}, ${b}, ${c}. Toʻla sirtini toping.`, 2 * (a * b + b * c + a * c), [a * b * c, a * b + b * c + a * c, 2 * a * b * c, 4 * (a + b + c)]);
+      },
+      () => {
+        const t = P([[1, 2, 2, 3], [2, 3, 6, 7], [4, 4, 7, 9], [1, 4, 8, 9], [2, 6, 9, 11], [3, 4, 12, 13]]), k = R(1, 3);
+        return mn(`Toʻgʻri burchakli parallelepipedning oʻlchamlari ${t[0] * k}, ${t[1] * k}, ${t[2] * k}. Diagonalini toping.`, t[3] * k, [t[0] * k + t[1] * k + t[2] * k, t[3] * k + 1, t[3] * k - 1, t[2] * k + t[1] * k]);
+      },
+    ],
+  },
+  {
+    en: 'Prizma',
+    sec: '§50',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const Sval = R(4, 40), h = R(2, 15);
+        return mn(`Prizma asosining yuzi ${Sval}, balandligi ${h}. Hajmini toping.`, Sval * h, [(Sval * h) % 3 === 0 ? (Sval * h) / 3 : Sval + h, Sval + h, 2 * Sval * h, Sval * h + Sval]);
+      },
+      () => {
+        const p = R(6, 40), h = R(2, 15);
+        return mn(`Toʻgʻri prizma asosining perimetri ${p}, balandligi ${h}. Yon sirtini toping.`, p * h, [(p * h) % 2 === 0 ? (p * h) / 2 : p + h, p + h, 2 * p * h, p * h + p]);
+      },
+      () => {
+        const t = tri(), h = R(2, 10);
+        if ((t[0] * t[1] * h) % 2) return;
+        return mn(`Asosi katetlari ${t[0]} va ${t[1]} boʻlgan toʻgʻri burchakli uchburchak, balandligi ${h} boʻlgan toʻgʻri prizmaning hajmini toping.`, (t[0] * t[1] * h) / 2, [t[0] * t[1] * h, (t[0] + t[1] + t[2]) * h, (t[0] * t[1] * h) % 4 === 0 ? (t[0] * t[1] * h) / 4 : t[2] * h, (t[0] * t[1]) / 2]);
+      },
+      () => {
+        const a = R(2, 12), h = R(2, 12), w = R(0, 2);
+        return w === 0
+          ? mn(`Muntazam toʻrtburchakli prizmaning asos tomoni ${a}, balandligi ${h}. Hajmini toping.`, a * a * h, [4 * a * h, a * h, 2 * a * a + 4 * a * h, a * a + h])
+          : w === 1
+          ? mn(`Muntazam toʻrtburchakli prizmaning asos tomoni ${a}, balandligi ${h}. Yon sirtini toping.`, 4 * a * h, [a * a * h, 2 * a * h, 2 * a * a + 4 * a * h, 4 * a + h])
+          : mn(`Muntazam toʻrtburchakli prizmaning asos tomoni ${a}, balandligi ${h}. Toʻla sirtini toping.`, 2 * a * a + 4 * a * h, [4 * a * h, a * a * h, a * a + 4 * a * h, 2 * a * a + 2 * a * h]);
+      },
+      () => {
+        const a = 2 * R(1, 8), h = R(2, 12), w = R(0, 1);
+        return w === 0
+          ? mk(`Muntazam uchburchakli prizmaning asos tomoni ${a}, balandligi ${h}. Hajmini toping.`, cr((a * a * h) / 4, 3), [cr((a * a * h) / 2, 3), '' + (a * a * h) / 4, cr(a * h, 3), cr((a * a * h) / 4 + 1, 3)])
+          : mn(`Muntazam uchburchakli prizmaning asos tomoni ${a}, balandligi ${h}. Yon sirtini toping.`, 3 * a * h, [a * h, a * a * h, 6 * a * h, 3 * a + h]);
+      },
+    ],
+  },
+  {
+    en: 'Piramida',
+    sec: '§51–53',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const Sval = R(3, 30), h = R(3, 15);
+        if ((Sval * h) % 3) return;
+        return mn(`Piramida asosining yuzi ${Sval}, balandligi ${h}. Hajmini toping.`, (Sval * h) / 3, [Sval * h, (Sval * h) % 2 === 0 ? (Sval * h) / 2 : Sval + h, (Sval * h) / 3 + h, Sval + h]);
+      },
+      () => {
+        const a = R(3, 12), h = R(3, 12);
+        if ((a * a * h) % 3) return;
+        return mn(`Muntazam toʻrtburchakli piramidaning asos tomoni ${a}, balandligi ${h}. Hajmini toping.`, (a * a * h) / 3, [a * a * h, (a * h) % 3 === 0 ? (a * h) / 3 : a * a, (4 * a * h) % 3 === 0 ? (4 * a * h) / 3 : a * h, (a * a * h) / 3 + a]);
+      },
+      () => {
+        const a = 2 * R(1, 10), l = R(3, 15), w = R(0, 1);
+        return w === 0
+          ? mn(`Muntazam toʻrtburchakli piramidaning asos tomoni ${a}, apofemasi ${l}. Yon sirtini toping.`, 2 * a * l, [a * l, 4 * a * l, a * a + 2 * a * l, (a * l) / 2])
+          : mn(`Muntazam toʻrtburchakli piramidaning asos tomoni ${a}, apofemasi ${l}. Toʻla sirtini toping.`, a * a + 2 * a * l, [2 * a * l, a * a + 4 * a * l, a * a * l, a * l + a]);
+      },
+      () => {
+        const t = P([[4, 1, 3], [8, 7, 9], [12, 7, 11], [12, 3, 9], [16, 14, 18], [16, 4, 12]]), k = R(1, 2);
+        return mn(`Muntazam toʻrtburchakli piramidaning asos tomoni ${t[0] * k}, yon qirrasi ${t[2] * k}. Balandligini toping.`, t[1] * k, [t[2] * k - (t[0] * k) / 2, t[1] * k + 1, t[2] * k - 1, t[0] * k]);
+      },
+      () => {
+        const k = R(2, 6), s = R(1, 8), u = R(1, 3), j = R(1, k - 1);
+        return mn(`Piramidaning asosi yuzi ${s * k * k}, balandligi ${k * u}. Uchidan ${j * u} masofada asosga parallel kesim yuzini toping.`, s * j * j, [s * j, s * k * j, s * j * j + s, s * k * k - s * j * j]);
+      },
+    ],
+  },
+  {
+    en: 'Silindr va konus',
+    sec: '§54–57',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const r = R(2, 10), h = R(2, 12), w = R(0, 2);
+        return w === 0
+          ? mk(`Silindrning radiusi ${r}, balandligi ${h}. Hajmini toping.`, pn(r * r * h), [pn(r * h), pn(2 * r * h), pn(r * r * h * 2), pn(r * r * h + r)])
+          : w === 1
+          ? mk(`Silindrning radiusi ${r}, balandligi ${h}. Yon sirtini toping.`, pn(2 * r * h), [pn(r * h), pn(r * r * h), pn(2 * r * (r + h)), pn(2 * r * h + r)])
+          : mk(`Silindrning radiusi ${r}, balandligi ${h}. Toʻla sirtini toping.`, pn(2 * r * (r + h)), [pn(2 * r * h), pn(r * r * h), pn(r * (r + h)), pn(2 * r * r + h)]);
+      },
+      () => {
+        const r = R(2, 10);
+        return mn(`Silindrning oʻq kesimi kvadrat, radiusi ${r}. Balandligini toping.`, 2 * r, [r, r * r, 4 * r, r + 2]);
+      },
+      () => {
+        const t = P([[3, 4, 5], [5, 12, 13], [8, 15, 17], [6, 8, 10], [9, 12, 15]]), w = R(0, 2);
+        return w === 0
+          ? mn(`Konus asosining radiusi ${t[0]}, balandligi ${t[1]}. Yasovchisini toping.`, t[2], [t[0] + t[1], t[2] + 1, t[1] - t[0] + t[2], t[2] - 1])
+          : w === 1
+          ? mk(`Konus asosining radiusi ${t[0]}, balandligi ${t[1]}. Hajmini toping.`, pi(t[0] * t[0] * t[1], 3), [pn(t[0] * t[0] * t[1]), pi(t[0] * t[1], 3), pi(2 * t[0] * t[0] * t[1], 3), pi(t[0] * t[0] * t[1] + 3, 3)])
+          : mk(`Konus asosining radiusi ${t[0]}, balandligi ${t[1]}. Yon sirtini toping.`, pn(t[0] * t[2]), [pn(t[0] * t[1]), pn(t[0] * (t[0] + t[2])), pn(2 * t[0] * t[2]), pn(t[0] * t[2] + t[0])]);
+      },
+      () => {
+        const t = P([[3, 4, 5], [5, 12, 13], [8, 15, 17], [6, 8, 10]]);
+        return mk(`Konus asosining radiusi ${t[0]}, balandligi ${t[1]}. Toʻla sirtini toping.`, pn(t[0] * (t[0] + t[2])), [pn(t[0] * t[2]), pn(t[0] * t[1]), pn(2 * t[0] * (t[0] + t[2])), pn(t[0] * t[2] + t[2])]);
+      },
+      () => {
+        const r = R(2, 10), l = R(r + 1, r + 10);
+        return mk(`Konusning yasovchisi ${l}, asosining radiusi ${r}. Yon sirtini toping.`, pn(r * l), [pn(r * r), pn(2 * r * l), pn(r * (r + l)), pn(r * l + r)]);
+      },
+    ],
+  },
+  {
+    en: 'Shar va sfera',
+    sec: '§58–62',
+    grp: 'Geometriya',
+    g: [
+      () => {
+        const r = R(2, 12), w = R(0, 1);
+        return w === 0
+          ? mk(`Sferaning radiusi ${r}. Sirtining yuzini toping.`, pn(4 * r * r), [pn(2 * r * r), pn(r * r), pn(4 * r), pn(4 * r * r + r)])
+          : mk(`Sharning radiusi ${r}. Hajmini toping.`, pi(4 * r * r * r, 3), [pi(4 * r * r, 3), pi(2 * r * r * r, 3), pn(4 * r * r * r), pi(r * r * r, 3)]);
+      },
+      () => {
+        const r = R(2, 12);
+        return mn(`Sferaning sirti ${pn(4 * r * r)}. Radiusini toping.`, r, [2 * r, r * r, r + 1, 4 * r]);
+      },
+      () => {
+        const m = R(1, 5), r = 3 * m;
+        return mn(`Sharning hajmi ${pn((4 * r * r * r) / 3)}. Radiusini toping.`, r, [r * r, r + 1, 2 * r, r - 1]);
+      },
+      () => {
+        const t = tri();
+        return mn(`Shar markazidan ${t[0]} masofada oʻtuvchi tekislik sharni kesadi. Shar radiusi ${t[2]}. Kesim radiusini toping.`, t[1], [t[2] - t[0], t[2] + t[0], t[1] + 1, t[1] - 1]);
+      },
+      () => {
+        const a = 2 * R(1, 12), w = R(0, 1);
+        return w === 0
+          ? mn(`Qirrasi ${a} boʻlgan kubga ichki chizilgan shar radiusini toping.`, a / 2, [a, a / 4 + 1, a / 2 + 1, 2 * a])
+          : mk(`Qirrasi ${a} boʻlgan kubga tashqi chizilgan shar radiusini toping.`, cr(a / 2, 3), [cr(a / 2, 2), '' + a / 2, cr(a, 3), cr(a, 2)]);
+      },
+    ],
+  },
+];
+
+function shuffle<T>(a: T[]): T[] {
+  const copy = a.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = tmp;
+  }
+  return copy;
+}
+
+function generateForTopic(raw: RawTopic): GeneratedQuestion[] {
+  const out: Array<[string, string, string, string, string]> = [];
+  const seen = new Set<string>();
+  let tries = 0;
+  while (out.length < 50 && tries++ < 12000) {
+    const res = P(raw.g)();
+    if (res) {
+      const normalized = res.map((x) => ('' + x).replace(/-(?=\d)/g, '−')) as [string, string, string, string, string];
+      if (!seen.has(normalized[0])) {
+        seen.add(normalized[0]);
+        out.push(normalized);
+      }
+    }
+  }
+  return shuffle(
+    out.map((r) => ({
+      q: r[0],
+      o: shuffle(r.slice(1).map((text, idx) => ({t: text, c: idx === 0}))),
+    })),
+  );
+}
+
+const COMBINED_RAW: RawTopic[] = [...ALGEBRA_BASE, ...ALGEBRA_MORE, ...GEOMETRY_TOPICS];
+
+export const MATH_TOPICS: MathTopic[] = COMBINED_RAW.map((t, index) => ({
+  id: `topic-${index + 1}`,
+  en: t.en,
+  sec: t.sec,
+  grp: t.grp,
+  generate: () => generateForTopic(t),
+}));

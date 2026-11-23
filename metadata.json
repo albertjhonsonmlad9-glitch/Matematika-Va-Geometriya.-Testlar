@@ -1,0 +1,6 @@
+{
+  "name": "Matematika Testi",
+  "description": "M. Usmonovning Matematika va Geometriya kitoblari asosida iOS va Android uchun bulutli sinxronizatsiyaga ega test ilovasi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
